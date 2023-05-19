@@ -6,12 +6,20 @@ use cowshmup::{
     state::State,
     world::World,
 };
-use macroquad::prelude::*;
+use macroquad::{input, prelude::*};
 
-pub struct MainState(Rc<World>);
+#[derive(Debug, Default)]
+pub struct MainState {
+    world: Rc<World>,
+    should_exit: bool,
+}
 
 impl State for MainState {
-    fn update(&mut self) {}
+    fn update(&mut self) {
+        if input::is_key_pressed(KeyCode::Escape) {
+            self.should_exit = true;
+        }
+    }
 
     fn draw(&self) {
         clear_background(RED);
@@ -25,7 +33,7 @@ impl State for MainState {
     }
 
     fn world(&self) -> std::rc::Rc<World> {
-        self.0.clone()
+        self.world.clone()
     }
 }
 
@@ -40,11 +48,17 @@ async fn main() -> Result<()> {
         15.0,
         YELLOW,
     ));
-    let mut state = Box::from(MainState(Rc::from(world)));
+    let mut state = Box::from(MainState {
+        world: Rc::from(world),
+        ..MainState::default()
+    });
     loop {
         state.update();
+        if state.should_exit {
+            break;
+        }
         state.draw();
         next_frame().await
     }
-    // Ok(())
+    Ok(())
 }
