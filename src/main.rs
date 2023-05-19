@@ -16,7 +16,7 @@ pub struct MainState {
 impl State for MainState {
     fn update(self: Box<Self>) -> Box<dyn State> {
         if input::is_key_pressed(KeyCode::Escape) {
-            return ExitState::new(self);
+            return Box::new(ExitState);
         }
         self
     }
@@ -49,9 +49,9 @@ async fn main() -> Result<()> {
         ..MainState::default()
     });
     while state.should_continue() {
-        state = state.update();
         state.draw();
-        next_frame().await
+        next_frame().await;
+        state = state.update();
     }
     Ok(())
 }
