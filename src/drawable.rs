@@ -5,7 +5,7 @@ use macroquad::{
     shapes::{draw_circle, draw_line},
 };
 
-use crate::{world::RcWorld, CenterPt, Size, TopLeftPt};
+use crate::{CenterPt, Size, TopLeftPt};
 
 pub trait HasCenter {
     fn center(&self) -> CenterPt;
@@ -20,7 +20,7 @@ pub trait HasSize {
 }
 
 pub trait Drawable: Debug {
-    fn draw(&self, world: RcWorld);
+    fn draw(&self);
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -52,7 +52,7 @@ impl Line {
 }
 
 impl Drawable for Line {
-    fn draw(&self, _world: RcWorld) {
+    fn draw(&self) {
         draw_line(self.x1, self.y1, self.x2, self.y2, 1.0, self.color);
     }
 }
@@ -68,7 +68,7 @@ impl Circle {
 }
 
 impl Drawable for Circle {
-    fn draw(&self, _world: RcWorld) {
+    fn draw(&self) {
         draw_circle(self.center.0, self.center.1, self.radius, self.color)
     }
 }
@@ -80,10 +80,10 @@ pub enum Graphic {
 }
 
 impl Drawable for Graphic {
-    fn draw(&self, world: RcWorld) {
+    fn draw(&self) {
         match self {
-            Graphic::Line(l) => l.draw(world),
-            Graphic::Circle(c) => c.draw(world),
+            Graphic::Line(l) => l.draw(),
+            Graphic::Circle(c) => c.draw(),
         }
     }
 }

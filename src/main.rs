@@ -3,37 +3,33 @@ use std::rc::Rc;
 use anyhow::Result;
 use cowshmup::{
     drawable::{Drawable, Graphic},
-    state::State,
+    state::{ExitState, State},
     world::World,
 };
 use macroquad::{input, prelude::*};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct MainState {
     world: Rc<World>,
-    should_exit: bool,
 }
 
 impl State for MainState {
-    fn update(&mut self) {
+    fn update(self: Box<Self>) -> Box<dyn State> {
         if input::is_key_pressed(KeyCode::Escape) {
-            self.should_exit = true;
+            return ExitState::new(self);
         }
+        self
     }
 
     fn draw(&self) {
         clear_background(RED);
 
-        for d in self.world().iter() {
-            d.draw(self.world())
+        for d in self.world.iter() {
+            d.draw()
         }
 
         draw_rectangle(screen_width() / 2.0 - 60.0, 100.0, 120.0, 60.0, GREEN);
         draw_text(&format!("HELLO {}", get_fps()), 20.0, 20.0, 20.0, DARKGRAY);
-    }
-
-    fn world(&self) -> std::rc::Rc<World> {
-        self.world.clone()
     }
 }
 
@@ -48,15 +44,12 @@ async fn main() -> Result<()> {
         15.0,
         YELLOW,
     ));
-    let mut state = Box::from(MainState {
+    let mut state: Box<dyn State> = Box::from(MainState {
         world: Rc::from(world),
         ..MainState::default()
     });
-    loop {
-        state.update();
-        if state.should_exit {
-            break;
-        }
+    while state.should_continue() {
+        state = state.update();
         state.draw();
         next_frame().await
     }
