@@ -4,24 +4,27 @@ use anyhow::Result;
 use cowshmup::{
     drawable::{Drawable, Graphic},
     state::{ExitState, ModalState, State},
-    world::World,
+    world::{RcWorld, World},
 };
 use macroquad::{input, prelude::*};
 
 #[derive(Debug, Default, Clone)]
 pub struct MainState {
-    world: Rc<World>,
+    world: RcWorld,
+    fps: i32,
 }
 
 impl State for MainState {
     fn update(self: Box<Self>) -> Box<dyn State> {
+        let mut new_state = self.clone();
+        new_state.fps = get_fps();
         if input::is_key_pressed(KeyCode::Escape) {
             return Box::new(ExitState);
         }
         if input::is_key_pressed(KeyCode::Space) {
-            return ModalState::new(Box::new(PausedState::default()), self);
+            return ModalState::new(Box::new(PausedState::default()), new_state);
         }
-        self
+        new_state
     }
 
     fn draw(&self) {
@@ -32,7 +35,7 @@ impl State for MainState {
         }
 
         draw_rectangle(screen_width() / 2.0 - 60.0, 100.0, 120.0, 60.0, GREEN);
-        draw_text(&format!("HELLO {}", get_fps()), 20.0, 20.0, 20.0, DARKGRAY);
+        draw_text(&format!("HELLO {}", self.fps), 20.0, 20.0, 20.0, DARKGRAY);
     }
 }
 

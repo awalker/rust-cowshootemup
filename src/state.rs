@@ -1,7 +1,3 @@
-use std::cell::{Cell, RefCell};
-
-use crate::drawable::Drawable;
-
 pub trait State {
     fn update(self: Box<Self>) -> Box<dyn State>;
     fn draw(&self) {}
