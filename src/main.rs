@@ -3,7 +3,7 @@ use std::rc::Rc;
 use anyhow::Result;
 use cowshmup::{
     drawable::{Drawable, Graphic},
-    state::{ExitState, State},
+    state::{ExitState, ModalState, State},
     world::World,
 };
 use macroquad::{input, prelude::*};
@@ -18,6 +18,9 @@ impl State for MainState {
         if input::is_key_pressed(KeyCode::Escape) {
             return Box::new(ExitState);
         }
+        if input::is_key_pressed(KeyCode::Space) {
+            return ModalState::new(Box::new(PausedState::default()), self);
+        }
         self
     }
 
@@ -30,6 +33,27 @@ impl State for MainState {
 
         draw_rectangle(screen_width() / 2.0 - 60.0, 100.0, 120.0, 60.0, GREEN);
         draw_text(&format!("HELLO {}", get_fps()), 20.0, 20.0, 20.0, DARKGRAY);
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct PausedState(bool);
+
+impl State for PausedState {
+    fn update(self: Box<Self>) -> Box<dyn State> {
+        if input::is_key_pressed(KeyCode::Escape) {
+            Box::new(PausedState(true))
+        } else {
+            self
+        }
+    }
+
+    fn draw(&self) {
+        draw_text("Paused", 120.0, 120.0, 20.0, WHITE);
+    }
+
+    fn should_continue(&self) -> bool {
+        !self.0
     }
 }
 
