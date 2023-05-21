@@ -13,6 +13,7 @@ pub struct MainState {
     world: RcWorld,
     fps: i32,
     next_state: NextState,
+    time: f32,
 }
 
 impl State for MainState {
@@ -20,7 +21,8 @@ impl State for MainState {
         self.next_state.take()
     }
 
-    fn update(&mut self) {
+    fn update(&mut self, delta_time: f32) {
+        self.time += delta_time;
         if input::is_key_pressed(KeyCode::Escape) {
             self.next_state = NextState::boxed(ExitState);
         } else if input::is_key_pressed(KeyCode::Space) {
@@ -39,8 +41,13 @@ impl State for MainState {
             d.draw()
         }
 
-        draw_rectangle(screen_width() / 2.0 - 60.0, 100.0, 120.0, 60.0, GREEN);
+        let mut x = 20.0 * self.time;
+        if x > 60.0 {
+            x = 60.0
+        }
+        draw_rectangle(screen_width() / 2.0 - x, 100.0, 120.0, 60.0, GREEN);
         draw_text(&format!("HELLO {}", self.fps), 20.0, 20.0, 20.0, DARKGRAY);
+        draw_text(&format!("TIME {}", self.time), 20.0, 40.0, 20.0, DARKGRAY);
     }
 }
 
@@ -48,7 +55,7 @@ impl State for MainState {
 pub struct PausedState(bool);
 
 impl State for PausedState {
-    fn update(&mut self) {
+    fn update(&mut self, _delta_time: f32) {
         self.0 = input::is_key_pressed(KeyCode::Escape);
     }
 
@@ -77,9 +84,9 @@ async fn main() -> Result<()> {
         ..MainState::default()
     });
     while state.should_continue() {
+        state.update(get_frame_time());
         state.draw();
         next_frame().await;
-        state.update();
         if let Some(new_state) = state.transition() {
             state = new_state;
         }

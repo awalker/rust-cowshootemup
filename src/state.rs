@@ -10,7 +10,7 @@ pub trait State {
     fn transition(&self) -> Option<Box<dyn State>> {
         None
     }
-    fn update(&mut self) {}
+    fn update(&mut self, _delta_time: f32) {}
     /// Draw, duh
     fn draw(&self) {}
     /// If the root state returns false, the game loop will exit.
@@ -82,8 +82,8 @@ impl<T: State + Clone + 'static> State for ModalState<T> {
         }
     }
 
-    fn update(&mut self) {
-        self.foreground.update();
+    fn update(&mut self, delta_time: f32) {
+        self.foreground.update(delta_time);
     }
 }
 
