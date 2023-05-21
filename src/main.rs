@@ -3,28 +3,33 @@ use std::rc::Rc;
 use anyhow::Result;
 use cowshmup::{
     drawable::{Drawable, Graphic},
-    state::{ExitState, ModalState, State},
+    state::{ExitState, ModalState, NextState, State},
     world::{RcWorld, World},
 };
 use macroquad::{input, prelude::*};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct MainState {
     world: RcWorld,
     fps: i32,
+    next_state: NextState,
 }
 
 impl State for MainState {
-    fn update(self: Box<Self>) -> Box<dyn State> {
-        let mut new_state = self.clone();
-        new_state.fps = get_fps();
+    fn transition(&self) -> Option<Box<dyn State>> {
+        self.next_state.take()
+    }
+
+    fn update(&mut self) {
         if input::is_key_pressed(KeyCode::Escape) {
-            return Box::new(ExitState);
+            self.next_state = NextState::boxed(ExitState);
+        } else if input::is_key_pressed(KeyCode::Space) {
+            self.next_state = NextState::some(ModalState::new(
+                Box::new(PausedState::default()),
+                Box::new(self.clone()),
+            ));
         }
-        if input::is_key_pressed(KeyCode::Space) {
-            return ModalState::new(Box::new(PausedState::default()), new_state);
-        }
-        new_state
+        self.fps = get_fps();
     }
 
     fn draw(&self) {
@@ -43,12 +48,8 @@ impl State for MainState {
 pub struct PausedState(bool);
 
 impl State for PausedState {
-    fn update(self: Box<Self>) -> Box<dyn State> {
-        if input::is_key_pressed(KeyCode::Escape) {
-            Box::new(PausedState(true))
-        } else {
-            self
-        }
+    fn update(&mut self) {
+        self.0 = input::is_key_pressed(KeyCode::Escape);
     }
 
     fn draw(&self) {
@@ -78,7 +79,10 @@ async fn main() -> Result<()> {
     while state.should_continue() {
         state.draw();
         next_frame().await;
-        state = state.update();
+        state.update();
+        if let Some(new_state) = state.transition() {
+            state = new_state;
+        }
     }
     Ok(())
 }
