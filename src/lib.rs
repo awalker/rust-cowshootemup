@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod drawable;
 pub mod state;
+pub mod updateable;
 pub mod world;
 
 pub type Rc<T> = std::rc::Rc<T>;

@@ -1,11 +1,13 @@
-use std::fmt::Debug;
-
+use crate::{CenterPt, Size, TopLeftPt};
 use macroquad::{
     prelude::Color,
     shapes::{draw_circle, draw_line},
 };
+use std::fmt::Debug;
 
-use crate::{CenterPt, Size, TopLeftPt};
+pub trait Drawable: Debug {
+    fn draw(&self);
+}
 
 pub trait HasCenter {
     fn center(&self) -> CenterPt;
@@ -17,10 +19,6 @@ pub trait HasTopLeft {
 
 pub trait HasSize {
     fn size(&self) -> Size;
-}
-
-pub trait Drawable: Debug {
-    fn draw(&self);
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
