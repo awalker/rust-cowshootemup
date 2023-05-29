@@ -10,5 +10,6 @@ anyhow = { version = "1.0.71", features = ["backtrace"] }
 flexi_logger = "0.25.4"
 log = "0.4.17"
 macroquad = { version = "0.3.25", features = ["log", "backtrace"] }
+rayon = "1.7.0"
 serde = { version = "1.0.163", features = ["derive"] }
 thiserror = "1.0.40"
