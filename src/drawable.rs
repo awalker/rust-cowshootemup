@@ -5,7 +5,7 @@ use macroquad::{
 };
 use std::fmt::Debug;
 
-pub trait Drawable: Debug {
+pub trait Drawable {
     fn draw(&self);
 }
 

@@ -4,6 +4,7 @@ use anyhow::Result;
 use cowshmup::{
     drawable::{Drawable, Graphic},
     state::{ExitState, ModalState, NextState, State},
+    updateable::Updateable,
     world::{RcWorld, World},
 };
 use macroquad::{input, prelude::*};
@@ -20,7 +21,8 @@ impl State for MainState {
     fn transition(&self) -> Option<Box<dyn State>> {
         self.next_state.take()
     }
-
+}
+impl Updateable for MainState {
     fn update(&mut self, delta_time: f32) {
         self.time += delta_time;
         if input::is_key_pressed(KeyCode::Escape) {
@@ -33,7 +35,9 @@ impl State for MainState {
         }
         self.fps = get_fps();
     }
+}
 
+impl Drawable for MainState {
     fn draw(&self) {
         clear_background(RED);
 
@@ -55,16 +59,20 @@ impl State for MainState {
 pub struct PausedState(bool);
 
 impl State for PausedState {
+    fn should_continue(&self) -> bool {
+        !self.0
+    }
+}
+
+impl Updateable for PausedState {
     fn update(&mut self, _delta_time: f32) {
         self.0 = input::is_key_pressed(KeyCode::Escape);
     }
+}
 
+impl Drawable for PausedState {
     fn draw(&self) {
         draw_text("Paused", 120.0, 120.0, 20.0, WHITE);
-    }
-
-    fn should_continue(&self) -> bool {
-        !self.0
     }
 }
 

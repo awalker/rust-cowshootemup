@@ -1,18 +1,17 @@
 use std::cell::RefCell;
 
+use crate::{drawable::Drawable, updateable::Updateable};
+
 /// Game State (eg. Loading, Menu, Paused, Playing)
 /// At least one `State` implementation should contain
 /// a `World`.
 /// Implementations should contain data that is cheap to clone.
 /// Use `RC`, interior mutability, or similar for large data.
-pub trait State {
+pub trait State: Updateable + Drawable {
     /// return the next state or None to stay in this state
     fn transition(&self) -> Option<Box<dyn State>> {
         None
     }
-    fn update(&mut self, _delta_time: f32) {}
-    /// Draw, duh
-    fn draw(&self) {}
     /// If the root state returns false, the game loop will exit.
     /// `ModalState` and others may use this as a transition signal.
     fn should_continue(&self) -> bool {
@@ -29,6 +28,14 @@ impl State for ExitState {
     }
 }
 
+impl Updateable for ExitState {
+    fn update(&mut self, _delta_time: f32) {}
+}
+
+impl Drawable for ExitState {
+    fn draw(&self) {}
+}
+
 /// Draws the foreground state on top of the background. Pauses updates for the
 /// background state, and run the foreground state until `should_continue` returns
 /// false.
@@ -41,6 +48,14 @@ pub struct ModalState<T: State + Clone> {
 struct EmptyState;
 
 impl State for EmptyState {}
+
+impl Updateable for EmptyState {
+    fn update(&mut self, _delta_time: f32) {}
+}
+
+impl Drawable for EmptyState {
+    fn draw(&self) {}
+}
 
 impl Default for Box<dyn State> {
     fn default() -> Self {
@@ -64,11 +79,6 @@ impl<T: State + Clone + 'static> ModalState<T> {
 }
 
 impl<T: State + Clone + 'static> State for ModalState<T> {
-    fn draw(&self) {
-        self.background.draw();
-        self.foreground.draw();
-    }
-
     fn should_continue(&self) -> bool {
         true
     }
@@ -81,7 +91,15 @@ impl<T: State + Clone + 'static> State for ModalState<T> {
             Some(Box::new((*self.background).clone()))
         }
     }
+}
+impl<T: State + Clone + 'static> Drawable for ModalState<T> {
+    fn draw(&self) {
+        self.background.draw();
+        self.foreground.draw();
+    }
+}
 
+impl<T: State + Clone + 'static> Updateable for ModalState<T> {
     fn update(&mut self, delta_time: f32) {
         self.foreground.update(delta_time);
     }
