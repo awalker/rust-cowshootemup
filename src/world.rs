@@ -45,3 +45,16 @@ impl std::fmt::Debug for World {
 }
 
 pub type RcWorld = Rc<RefCell<World>>;
+
+impl Updateable for RcWorld {
+    fn update(&mut self, delta_time: f32) {
+        let mut world = (*self).borrow_mut();
+        world.update(delta_time);
+    }
+}
+
+impl Drawable for RcWorld {
+    fn draw(&self) {
+        self.borrow().draw();
+    }
+}

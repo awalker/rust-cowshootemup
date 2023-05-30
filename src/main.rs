@@ -34,10 +34,7 @@ impl Updateable for GameData {
                 Box::new(self.clone()),
             ));
         }
-        {
-            let mut world = (*self.world).borrow_mut();
-            world.update(delta_time);
-        }
+        self.world.update(delta_time);
         self.fps = get_fps();
     }
 }
@@ -46,8 +43,7 @@ impl Drawable for GameData {
     fn draw(&self) {
         clear_background(RED);
 
-        let world = self.world.borrow();
-        world.draw();
+        self.world.draw();
 
         let mut x = 20.0 * self.time;
         if x > 60.0 {
