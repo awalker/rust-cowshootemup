@@ -1,16 +1,38 @@
 use macroquad::{prelude::Color, shapes::draw_circle};
 
-use crate::{drawable::Drawable, impl_pts, updateable::Updateable, Accel, CenterPt, Velocity};
+use crate::{
+    alive::IsAlive, drawable::Drawable, timers::AliveTimer, updateable::Updateable, Accel,
+    CenterPt, Velocity,
+};
 
-pub trait Particle: Drawable + Updateable {}
+pub trait Particle: Drawable + Updateable + IsAlive {
+    // fn ttl(&self) -> f32;
+}
 
-#[derive(Default, Debug)]
+pub trait AliveUpdatable: Updateable + IsAlive {}
+
+#[derive(Default)]
 pub struct CircleParticle {
     center: CenterPt,
     radius: f32,
     color: Color,
     velocity: Velocity,
     accel: Accel,
+    visible: bool,
+    alive_timer: Option<AliveTimer>,
+}
+
+impl std::fmt::Debug for CircleParticle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CircleParticle")
+            .field("center", &self.center)
+            .field("radius", &self.radius)
+            .field("color", &self.color)
+            .field("velocity", &self.velocity)
+            .field("accel", &self.accel)
+            .field("visible", &self.visible)
+            .finish()
+    }
 }
 
 impl CircleParticle {
@@ -19,6 +41,7 @@ impl CircleParticle {
             center,
             radius,
             color,
+            visible: true,
             ..Default::default()
         }
     }
@@ -32,18 +55,37 @@ impl CircleParticle {
         self.accel = v;
         self
     }
+
+    pub fn with_ttl(mut self, v: f32) -> Self {
+        self.alive_timer = Some(AliveTimer::new(v));
+        self
+    }
+}
+
+impl IsAlive for CircleParticle {
+    fn is_alive(&self) -> bool {
+        self.visible
+    }
 }
 
 impl Particle for CircleParticle {}
 
 impl Drawable for CircleParticle {
     fn draw(&self) {
-        draw_circle(self.center.0, self.center.1, self.radius, self.color)
+        if self.visible {
+            draw_circle(self.center.0, self.center.1, self.radius, self.color)
+        }
     }
 }
 
 impl Updateable for CircleParticle {
     fn update(&mut self, delta_time: f32) {
+        if let Some(timer) = &mut self.alive_timer {
+            timer.update(delta_time);
+            if !timer.is_alive() {
+                self.visible = false;
+            }
+        }
         let vel = self.velocity * self.accel * delta_time;
         log::debug!("vel = {:?}", vel);
         self.center = self.center + vel;

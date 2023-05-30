@@ -88,7 +88,7 @@ async fn main() -> Result<()> {
         15.0,
         YELLOW,
     )
-    .with_velocity((10., 10.).into());
+    .with_velocity((-10., -10.).into());
 
     world.add_particle(Box::new(part));
     let mut state: Box<dyn State> = Box::from(GameData {

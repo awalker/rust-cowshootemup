@@ -2,10 +2,12 @@ use std::ops::{Add, Mul};
 
 use serde::{Deserialize, Serialize};
 
+pub mod alive;
 pub mod drawable;
 pub mod movable;
 pub mod particle;
 pub mod state;
+pub mod timers;
 pub mod updateable;
 pub mod world;
 
