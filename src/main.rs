@@ -10,19 +10,20 @@ use cowshmup::{
 use macroquad::{input, prelude::*};
 
 #[derive(Default, Clone, Debug)]
-pub struct MainState {
+pub struct GameData {
     world: RcWorld,
     fps: i32,
     next_state: NextState,
     time: f32,
 }
 
-impl State for MainState {
+impl State for GameData {
     fn transition(&self) -> Option<Box<dyn State>> {
         self.next_state.take()
     }
 }
-impl Updateable for MainState {
+
+impl Updateable for GameData {
     fn update(&mut self, delta_time: f32) {
         self.time += delta_time;
         if input::is_key_pressed(KeyCode::Escape) {
@@ -37,7 +38,7 @@ impl Updateable for MainState {
     }
 }
 
-impl Drawable for MainState {
+impl Drawable for GameData {
     fn draw(&self) {
         clear_background(RED);
 
@@ -87,9 +88,9 @@ async fn main() -> Result<()> {
         15.0,
         YELLOW,
     ));
-    let mut state: Box<dyn State> = Box::from(MainState {
+    let mut state: Box<dyn State> = Box::from(GameData {
         world: Rc::from(world),
-        ..MainState::default()
+        ..GameData::default()
     });
     while state.should_continue() {
         state.update(get_frame_time());
