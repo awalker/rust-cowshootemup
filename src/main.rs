@@ -87,7 +87,8 @@ async fn main() -> Result<()> {
         (screen_width() - 30.0, screen_height() - 30.0).into(),
         15.0,
         YELLOW,
-    );
+    )
+    .with_velocity((10., 10.).into());
 
     world.add_particle(Box::new(part));
     let mut state: Box<dyn State> = Box::from(GameData {

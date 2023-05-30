@@ -1,9 +1,6 @@
 use macroquad::{prelude::Color, shapes::draw_circle};
 
-use crate::{
-    drawable::Drawable, impl_pts, movable::Movable, updateable::Updateable, Accel, CenterPt,
-    Velocity,
-};
+use crate::{drawable::Drawable, impl_pts, updateable::Updateable, Accel, CenterPt, Velocity};
 
 pub trait Particle: Drawable + Updateable {}
 
@@ -37,6 +34,8 @@ impl CircleParticle {
     }
 }
 
+impl Particle for CircleParticle {}
+
 impl Drawable for CircleParticle {
     fn draw(&self) {
         draw_circle(self.center.0, self.center.1, self.radius, self.color)
@@ -45,10 +44,8 @@ impl Drawable for CircleParticle {
 
 impl Updateable for CircleParticle {
     fn update(&mut self, delta_time: f32) {
-        self.update_move(delta_time);
+        let vel = self.velocity * self.accel * delta_time;
+        log::debug!("vel = {:?}", vel);
+        self.center = self.center + vel;
     }
 }
-
-impl_pts!( center CircleParticle);
-impl_pts!( velocity CircleParticle);
-impl_pts!( accel CircleParticle);

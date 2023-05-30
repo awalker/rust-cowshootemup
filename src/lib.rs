@@ -21,8 +21,14 @@ pub struct BottomRightPt(f32, f32);
 pub struct Size(f32, f32);
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
 pub struct Velocity(f32, f32);
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Accel(f32, f32);
+
+impl Default for Accel {
+    fn default() -> Self {
+        Self(1., 1.)
+    }
+}
 
 macro_rules! impl_vec2 {
     ($id: ident) => {
