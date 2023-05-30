@@ -1,22 +1,47 @@
-use std::slice::Iter;
+use std::cell::RefCell;
 
 // use serde::{Deserialize, Serialize};
 
-use crate::{drawable::Graphic, Rc};
+use crate::{
+    drawable::{Drawable, Graphic},
+    particle::Particle,
+    updateable::Updateable,
+    Rc,
+};
 
-#[derive(Debug, Default /*, Serialize, Deserialize*/)]
+#[derive(Default /*, Serialize, Deserialize*/)]
 pub struct World {
-    items: Vec<Graphic>,
+    graphics: Vec<Graphic>,
+    particles: Vec<Box<dyn Particle>>,
 }
 
 impl World {
-    pub fn add_item(&mut self, d: Graphic) {
-        self.items.push(d)
+    pub fn add_graphic(&mut self, d: Graphic) {
+        self.graphics.push(d)
     }
 
-    pub fn iter(&self) -> Iter<'_, Graphic> {
-        self.items.iter()
+    pub fn add_particle(&mut self, d: Box<dyn Particle>) {
+        self.particles.push(d)
     }
 }
 
-pub type RcWorld = Rc<World>;
+impl Drawable for World {
+    fn draw(&self) {
+        self.graphics.iter().for_each(|g| g.draw());
+        self.particles.iter().for_each(|p| p.draw());
+    }
+}
+
+impl Updateable for World {
+    fn update(&mut self, delta_time: f32) {
+        self.particles.iter_mut().for_each(|p| p.update(delta_time))
+    }
+}
+
+impl std::fmt::Debug for World {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("World").finish()
+    }
+}
+
+pub type RcWorld = Rc<RefCell<World>>;

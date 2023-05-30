@@ -1,4 +1,4 @@
-use crate::{CenterPt, Size, TopLeftPt};
+use crate::{CenterPt, Size, TopLeftPt, Velocity};
 use macroquad::{
     prelude::Color,
     shapes::{draw_circle, draw_line},
@@ -11,6 +11,10 @@ pub trait Drawable {
 
 pub trait HasCenter {
     fn center(&self) -> CenterPt;
+}
+
+pub trait HasVelocity {
+    fn velocity(&self) -> Velocity;
 }
 
 pub trait HasTopLeft {

@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use anyhow::Result;
 use cowshmup::{
@@ -34,6 +34,10 @@ impl Updateable for GameData {
                 Box::new(self.clone()),
             ));
         }
+        {
+            let mut world = (*self.world).borrow_mut();
+            world.update(delta_time);
+        }
         self.fps = get_fps();
     }
 }
@@ -42,9 +46,8 @@ impl Drawable for GameData {
     fn draw(&self) {
         clear_background(RED);
 
-        for d in self.world.iter() {
-            d.draw()
-        }
+        let world = self.world.borrow();
+        world.draw();
 
         let mut x = 20.0 * self.time;
         if x > 60.0 {
@@ -82,14 +85,14 @@ async fn main() -> Result<()> {
     flexi_logger::Logger::try_with_env_or_str("warn")?.start()?;
     log::info!("Hello, World!");
     let mut world = World::default();
-    world.add_item(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
-    world.add_item(Graphic::circle(
+    world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
+    world.add_graphic(Graphic::circle(
         (screen_width() - 30.0, screen_height() - 30.0).into(),
         15.0,
         YELLOW,
     ));
     let mut state: Box<dyn State> = Box::from(GameData {
-        world: Rc::from(world),
+        world: Rc::from(RefCell::new(world)),
         ..GameData::default()
     });
     while state.should_continue() {

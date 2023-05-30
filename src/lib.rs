@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 pub mod drawable;
+pub mod movable;
+pub mod particle;
 pub mod state;
 pub mod updateable;
 pub mod world;
@@ -15,6 +17,8 @@ pub struct TopLeftPt(f32, f32);
 pub struct BottomRightPt(f32, f32);
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
 pub struct Size(f32, f32);
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
+pub struct Velocity(f32, f32);
 
 macro_rules! impl_vec2 {
     ($id: ident) => {
