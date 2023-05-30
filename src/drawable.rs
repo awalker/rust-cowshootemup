@@ -1,4 +1,4 @@
-use crate::{CenterPt, Size, TopLeftPt, Velocity};
+use crate::{Accel, CenterPt, Size, TopLeftPt, Velocity};
 use macroquad::{
     prelude::Color,
     shapes::{draw_circle, draw_line},
@@ -13,8 +13,24 @@ pub trait HasCenter {
     fn center(&self) -> CenterPt;
 }
 
+pub trait UpdateCenter: HasCenter {
+    fn update_center(&mut self, v: CenterPt);
+}
+
 pub trait HasVelocity {
     fn velocity(&self) -> Velocity;
+}
+
+pub trait UpdateVelocity: HasVelocity {
+    fn update_velocity(&mut self, v: Velocity);
+}
+
+pub trait HasAccel {
+    fn accel(&self) -> Accel;
+}
+
+pub trait UpdateAccel {
+    fn update_accel(&mut self, v: Accel);
 }
 
 pub trait HasTopLeft {

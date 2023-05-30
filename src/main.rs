@@ -3,6 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use anyhow::Result;
 use cowshmup::{
     drawable::{Drawable, Graphic},
+    particle::CircleParticle,
     state::{ExitState, ModalState, NextState, State},
     updateable::Updateable,
     world::{RcWorld, World},
@@ -82,11 +83,13 @@ async fn main() -> Result<()> {
     log::info!("Hello, World!");
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
-    world.add_graphic(Graphic::circle(
+    let part = CircleParticle::new(
         (screen_width() - 30.0, screen_height() - 30.0).into(),
         15.0,
         YELLOW,
-    ));
+    );
+
+    world.add_particle(Box::new(part));
     let mut state: Box<dyn State> = Box::from(GameData {
         world: Rc::from(RefCell::new(world)),
         ..GameData::default()

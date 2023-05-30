@@ -1,3 +1,5 @@
+use std::ops::{Add, Mul};
+
 use serde::{Deserialize, Serialize};
 
 pub mod drawable;
@@ -19,6 +21,8 @@ pub struct BottomRightPt(f32, f32);
 pub struct Size(f32, f32);
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
 pub struct Velocity(f32, f32);
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
+pub struct Accel(f32, f32);
 
 macro_rules! impl_vec2 {
     ($id: ident) => {
@@ -44,7 +48,76 @@ macro_rules! impl_vec2 {
     };
 }
 
+impl Mul<f32> for Velocity {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self(self.0 * rhs, self.1 * rhs)
+    }
+}
+
+impl Mul<Accel> for Velocity {
+    type Output = Velocity;
+
+    fn mul(self, rhs: Accel) -> Self::Output {
+        Velocity(self.0 * rhs.0, self.1 * rhs.1)
+    }
+}
+
+impl Add<Velocity> for CenterPt {
+    type Output = CenterPt;
+
+    fn add(self, rhs: Velocity) -> Self::Output {
+        CenterPt(self.0 + rhs.0, self.1 + rhs.1)
+    }
+}
+
 impl_vec2!(CenterPt);
 impl_vec2!(TopLeftPt);
 impl_vec2!(BottomRightPt);
 impl_vec2!(Size);
+impl_vec2!(Velocity);
+impl_vec2!(Accel);
+
+#[macro_export]
+macro_rules! impl_pts {
+    (center $id:ident) => {
+        impl crate::drawable::HasCenter for $id {
+            fn center(&self) -> crate::CenterPt {
+                self.center
+            }
+        }
+
+        impl crate::drawable::UpdateCenter for $id {
+            fn update_center(&mut self, v: crate::CenterPt) {
+                self.center = v
+            }
+        }
+    };
+    (velocity $id:ident) => {
+        impl crate::drawable::HasVelocity for $id {
+            fn velocity(&self) -> crate::Velocity {
+                self.velocity
+            }
+        }
+
+        impl crate::drawable::UpdateVelocity for $id {
+            fn update_velocity(&mut self, v: crate::Velocity) {
+                self.velocity = v
+            }
+        }
+    };
+    (accel $id:ident) => {
+        impl crate::drawable::HasAccel for $id {
+            fn accel(&self) -> crate::Accel {
+                self.accel
+            }
+        }
+
+        impl crate::drawable::UpdateAccel for $id {
+            fn update_accel(&mut self, v: crate::Accel) {
+                self.accel = v
+            }
+        }
+    };
+}
