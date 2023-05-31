@@ -1,5 +1,5 @@
 /// Cow Shoot 'em up in Rust
-use std::{cell::RefCell, matches, rc::Rc};
+use std::{cell::RefCell, f32::consts::PI, matches, rc::Rc};
 
 use anyhow::Result;
 use cowshmup::{
@@ -123,6 +123,13 @@ async fn main() -> Result<()> {
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
     let part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into())
         .with_age(5., 5.)
+        .with_radius(8., 128.)
+        .with_circle_stage()
+        .with_radius(32., 64.)
+        .with_count(3, 4)
+        .with_angle(PI, PI * 2.)
+        .with_dist(10., 25.)
+        .with_color(BROWN)
         .with_circle_stage()
         .build();
     /* 64.0,

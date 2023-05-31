@@ -1,9 +1,9 @@
-mod alive;
+mod circle;
 use crate::{
     alive::IsAlive, drawable::Drawable, minmax::MinMax, updateable::Updateable, CenterPt, Velocity,
 };
-pub use alive::CircleParticle;
-use macroquad::prelude::YELLOW;
+pub use circle::CircleParticle;
+use macroquad::prelude::{Color, YELLOW};
 use std::f32::consts::PI;
 
 pub trait Particle: Drawable + Updateable + IsAlive {
@@ -31,6 +31,7 @@ pub struct ExplosionBuilder {
     /// How large is the particle (circle/spark)
     radius: MinMax<f32>,
     delay: MinMax<f32>,
+    color: Color,
     /// We currently pregenerating all the circles, maybe we should store the stages and generate
     /// on build
     circles: Vec<CircleParticle>,
@@ -85,6 +86,11 @@ impl ExplosionBuilder {
         self
     }
 
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
+    }
+
     /// Add a stage of the explosion
     pub fn with_circle_stage(mut self) -> Self {
         assert!(self.stage_time.max != 0., "Max Stage time can not be zero!");
@@ -99,10 +105,11 @@ impl ExplosionBuilder {
             time = time.append(t + d);
             let center = self.center;
             let velocity = self.velocity;
-            let cp = CircleParticle::new(center, self.radius.rand(), YELLOW)
+            let cp = CircleParticle::new(center, self.radius.rand(), self.color)
                 .with_ttl(t)
                 .with_delay(d)
                 .with_velocity(velocity);
+            dbg!(&cp);
             self.circles.push(cp);
         }
         let time = time.avg();
@@ -126,6 +133,7 @@ impl Explosion {
             circles_per_stage: MinMax::new(1, 1),
             radius: MinMax::new(10., 10.),
             angle: MinMax::new(0., PI * 2.),
+            color: YELLOW,
             ..Default::default()
         }
     }

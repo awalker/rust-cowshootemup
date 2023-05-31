@@ -48,7 +48,7 @@ impl CircleParticle {
     }
 
     pub fn is_visible(&self) -> bool {
-        self.ttl > 0. && self.delay <= 0.
+        self.ttl >= 0. && self.delay <= 0.
     }
 }
 
@@ -75,7 +75,6 @@ impl Updateable for CircleParticle {
         } else if self.ttl > 0. {
             self.ttl -= delta_time;
             let vel = self.velocity * self.accel * delta_time;
-            log::debug!("vel = {:?}", vel);
             self.center = self.center + vel;
         }
     }
