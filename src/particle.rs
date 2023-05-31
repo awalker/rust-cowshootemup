@@ -1,9 +1,9 @@
-use macroquad::{prelude::Color, shapes::draw_circle};
+mod alive;
+use std::{f32::consts::PI, todo};
 
-use crate::{
-    alive::IsAlive, drawable::Drawable, timers::AliveTimer, updateable::Updateable, Accel,
-    CenterPt, Velocity,
-};
+use crate::{alive::IsAlive, drawable::Drawable, updateable::Updateable, CenterPt, Velocity};
+
+pub use alive::CircleParticle;
 
 pub trait Particle: Drawable + Updateable + IsAlive {
     // fn ttl(&self) -> f32;
@@ -11,39 +11,31 @@ pub trait Particle: Drawable + Updateable + IsAlive {
 
 pub trait AliveUpdatable: Updateable + IsAlive {}
 
-#[derive(Default)]
-pub struct CircleParticle {
+#[derive(Debug, Default)]
+pub struct Explosion {
+    circles: Vec<CircleParticle>,
+
     center: CenterPt,
-    radius: f32,
-    color: Color,
+    // lines, sparks, or whatever
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ExplosionBuilder {
+    center: CenterPt,
     velocity: Velocity,
-    accel: Accel,
-    visible: bool,
-    alive_timer: Option<AliveTimer>,
+    stage_time: f32,
+    circles_per_stage: u8,
+    angle_max: f32,
+    angle_min: f32,
+    dist_max: f32,
+    dist_min: f32,
+    circles: Vec<CircleParticle>,
 }
 
-impl std::fmt::Debug for CircleParticle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CircleParticle")
-            .field("center", &self.center)
-            .field("radius", &self.radius)
-            .field("color", &self.color)
-            .field("velocity", &self.velocity)
-            .field("accel", &self.accel)
-            .field("visible", &self.visible)
-            .finish()
-    }
-}
-
-impl CircleParticle {
-    pub fn new(center: CenterPt, radius: f32, color: Color) -> Self {
-        Self {
-            center,
-            radius,
-            color,
-            visible: true,
-            ..Default::default()
-        }
+impl ExplosionBuilder {
+    pub fn at(mut self, center: CenterPt) -> Self {
+        self.center = center;
+        self
     }
 
     pub fn with_velocity(mut self, v: Velocity) -> Self {
@@ -51,43 +43,42 @@ impl CircleParticle {
         self
     }
 
-    pub fn with_accel(mut self, v: Accel) -> Self {
-        self.accel = v;
+    /// Set the min/max angle for random balls in the next
+    /// stage of the explosion
+    pub fn with_angle(mut self, min: f32, max: f32) -> Self {
+        self.angle_min = min;
+        self.angle_max = max;
         self
     }
 
-    pub fn with_ttl(mut self, v: f32) -> Self {
-        self.alive_timer = Some(AliveTimer::new(v));
+    /// Set the min/max dist for random balls in the next
+    /// stage of the explosion
+    pub fn with_dist(mut self, min: f32, max: f32) -> Self {
+        self.dist_min = min;
+        self.dist_max = max;
         self
     }
-}
 
-impl IsAlive for CircleParticle {
-    fn is_alive(&self) -> bool {
-        self.visible
+    /// Add a stage of the explosion
+    pub fn with_stage(mut self, time: f32, count: u8) -> Self {
+        todo!();
+        self
     }
-}
 
-impl Particle for CircleParticle {}
-
-impl Drawable for CircleParticle {
-    fn draw(&self) {
-        if self.visible {
-            draw_circle(self.center.0, self.center.1, self.radius, self.color)
+    pub fn build(self) -> Explosion {
+        Explosion {
+            circles: self.circles,
+            center: self.center,
         }
     }
 }
 
-impl Updateable for CircleParticle {
-    fn update(&mut self, delta_time: f32) {
-        if let Some(timer) = &mut self.alive_timer {
-            timer.update(delta_time);
-            if !timer.is_alive() {
-                self.visible = false;
-            }
+impl Explosion {
+    pub fn new(center: CenterPt, velocity: Velocity) -> ExplosionBuilder {
+        ExplosionBuilder {
+            velocity: Velocity(0., -2.),
+            angle_max: PI * 2.,
+            ..Default::default()
         }
-        let vel = self.velocity * self.accel * delta_time;
-        log::debug!("vel = {:?}", vel);
-        self.center = self.center + vel;
     }
 }

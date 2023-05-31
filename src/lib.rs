@@ -4,9 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod alive;
 pub mod drawable;
-pub mod movable;
 pub mod particle;
-pub mod state;
 pub mod timers;
 pub mod updateable;
 pub mod world;
@@ -90,40 +88,40 @@ impl_vec2!(Accel);
 #[macro_export]
 macro_rules! impl_pts {
     (center $id:ident) => {
-        impl crate::drawable::HasCenter for $id {
-            fn center(&self) -> crate::CenterPt {
+        impl $crate::drawable::HasCenter for $id {
+            fn center(&self) -> $crate::CenterPt {
                 self.center
             }
         }
 
-        impl crate::drawable::UpdateCenter for $id {
-            fn update_center(&mut self, v: crate::CenterPt) {
+        impl $crate::drawable::UpdateCenter for $id {
+            fn update_center(&mut self, v: $crate::CenterPt) {
                 self.center = v
             }
         }
     };
     (velocity $id:ident) => {
-        impl crate::drawable::HasVelocity for $id {
-            fn velocity(&self) -> crate::Velocity {
+        impl $crate::drawable::HasVelocity for $id {
+            fn velocity(&self) -> $crate::Velocity {
                 self.velocity
             }
         }
 
-        impl crate::drawable::UpdateVelocity for $id {
-            fn update_velocity(&mut self, v: crate::Velocity) {
+        impl $crate::drawable::UpdateVelocity for $id {
+            fn update_velocity(&mut self, v: $crate::Velocity) {
                 self.velocity = v
             }
         }
     };
     (accel $id:ident) => {
-        impl crate::drawable::HasAccel for $id {
-            fn accel(&self) -> crate::Accel {
+        impl $crate::drawable::HasAccel for $id {
+            fn accel(&self) -> $crate::Accel {
                 self.accel
             }
         }
 
-        impl crate::drawable::UpdateAccel for $id {
-            fn update_accel(&mut self, v: crate::Accel) {
+        impl $crate::drawable::UpdateAccel for $id {
+            fn update_accel(&mut self, v: $crate::Accel) {
                 self.accel = v
             }
         }

@@ -1,47 +1,51 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, matches, rc::Rc};
 
 use anyhow::Result;
 use cowshmup::{
     drawable::{Drawable, Graphic},
     particle::CircleParticle,
-    state::{ExitState, ModalState, NextState, State},
     updateable::Updateable,
     world::{RcWorld, World},
 };
 use macroquad::{input, prelude::*};
 
+#[derive(Debug, Default, Clone, Copy)]
+enum State {
+    #[default]
+    Init,
+    Playing,
+    Paused,
+    Exit,
+}
+
 #[derive(Default, Clone, Debug)]
 pub struct GameData {
     world: RcWorld,
     fps: i32,
-    next_state: NextState,
     time: f32,
+    state: State,
 }
 
-impl State for GameData {
-    fn transition(&self) -> Option<Box<dyn State>> {
-        self.next_state.take()
-    }
-}
-
-impl Updateable for GameData {
-    fn update(&mut self, delta_time: f32) {
-        self.time += delta_time;
-        if input::is_key_pressed(KeyCode::Escape) {
-            self.next_state = NextState::boxed(ExitState);
-        } else if input::is_key_pressed(KeyCode::Space) {
-            self.next_state = NextState::some(ModalState::new(
-                Box::new(PausedState::default()),
-                Box::new(self.clone()),
-            ));
-        }
+impl GameData {
+    fn update_game(&mut self, delta_time: f32) {
+        self.handle_common_input(delta_time);
         self.world.update(delta_time);
         self.fps = get_fps();
     }
-}
 
-impl Drawable for GameData {
-    fn draw(&self) {
+    fn update_paused(&mut self, delta_time: f32) {
+        self.handle_common_input(delta_time);
+    }
+
+    fn handle_common_input(&mut self, _delta_time: f32) {
+        if input::is_key_pressed(KeyCode::Escape) {
+            self.press_escape();
+        } else if input::is_key_pressed(KeyCode::Space) {
+            self.press_space();
+        }
+    }
+
+    fn draw_game(&self) {
         clear_background(RED);
 
         self.world.draw();
@@ -54,26 +58,58 @@ impl Drawable for GameData {
         draw_text(&format!("HELLO {}", self.fps), 20.0, 20.0, 20.0, DARKGRAY);
         draw_text(&format!("TIME {}", self.time), 20.0, 40.0, 20.0, DARKGRAY);
     }
-}
 
-#[derive(Debug, Default, Clone)]
-pub struct PausedState(bool);
-
-impl State for PausedState {
-    fn should_continue(&self) -> bool {
-        !self.0
-    }
-}
-
-impl Updateable for PausedState {
-    fn update(&mut self, _delta_time: f32) {
-        self.0 = input::is_key_pressed(KeyCode::Escape);
-    }
-}
-
-impl Drawable for PausedState {
-    fn draw(&self) {
+    fn draw_paused(&self) {
         draw_text("Paused", 120.0, 120.0, 20.0, WHITE);
+    }
+
+    fn press_escape(&mut self) {
+        match self.state {
+            State::Playing => self.state = State::Exit,
+            State::Paused => self.state = State::Playing,
+            _ => {}
+        }
+    }
+
+    fn press_space(&mut self) {
+        if self.state.is_playing() {
+            self.state = State::Paused
+        }
+    }
+}
+
+impl Updateable for GameData {
+    fn update(&mut self, delta_time: f32) {
+        match self.state {
+            State::Init => self.state = State::Playing,
+            State::Playing => self.update_game(delta_time),
+            State::Paused => self.update_paused(delta_time),
+            State::Exit => {}
+        }
+    }
+}
+
+impl Drawable for GameData {
+    fn draw(&self) {
+        match self.state {
+            State::Init => {}
+            State::Playing => self.draw_game(),
+            State::Paused => {
+                self.draw_game();
+                self.draw_paused();
+            }
+            State::Exit => self.draw_game(),
+        }
+    }
+}
+
+impl State {
+    fn is_exit(&self) -> bool {
+        matches!(self, State::Exit)
+    }
+
+    fn is_playing(&self) -> bool {
+        matches!(self, State::Playing)
     }
 }
 
@@ -84,24 +120,22 @@ async fn main() -> Result<()> {
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
     let part = CircleParticle::new(
-        (screen_width() - 30.0, screen_height() - 30.0).into(),
-        15.0,
+        (screen_width() / 2.0, screen_height() / 2.0).into(),
+        64.0,
         YELLOW,
     )
     .with_velocity((-10., -10.).into());
 
     world.add_particle(Box::new(part));
-    let mut state: Box<dyn State> = Box::from(GameData {
+    let mut game = GameData {
         world: Rc::from(RefCell::new(world)),
         ..GameData::default()
-    });
-    while state.should_continue() {
-        state.update(get_frame_time());
-        state.draw();
+    };
+
+    while !game.state.is_exit() {
+        game.update(get_frame_time());
+        game.draw();
         next_frame().await;
-        if let Some(new_state) = state.transition() {
-            state = new_state;
-        }
     }
     Ok(())
 }
