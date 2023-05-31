@@ -1,9 +1,10 @@
 mod alive;
-use std::{f32::consts::PI, todo};
-
-use crate::{alive::IsAlive, drawable::Drawable, updateable::Updateable, CenterPt, Velocity};
-
+use crate::{
+    alive::IsAlive, drawable::Drawable, minmax::MinMax, updateable::Updateable, CenterPt, Velocity,
+};
 pub use alive::CircleParticle;
+use macroquad::prelude::YELLOW;
+use std::f32::consts::PI;
 
 pub trait Particle: Drawable + Updateable + IsAlive {
     // fn ttl(&self) -> f32;
@@ -11,11 +12,9 @@ pub trait Particle: Drawable + Updateable + IsAlive {
 
 pub trait AliveUpdatable: Updateable + IsAlive {}
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Explosion {
     circles: Vec<CircleParticle>,
-
-    center: CenterPt,
     // lines, sparks, or whatever
 }
 
@@ -23,12 +22,17 @@ pub struct Explosion {
 pub struct ExplosionBuilder {
     center: CenterPt,
     velocity: Velocity,
-    stage_time: f32,
-    circles_per_stage: u8,
-    angle_max: f32,
-    angle_min: f32,
-    dist_max: f32,
-    dist_min: f32,
+    stage_time: MinMax<f32>,
+    circles_per_stage: MinMax<u8>,
+    /// a random angle from the center at which to spawn particles
+    angle: MinMax<f32>,
+    /// a random distance from the center at which to spawn particles
+    dist: MinMax<f32>,
+    /// How large is the particle (circle/spark)
+    radius: MinMax<f32>,
+    delay: MinMax<f32>,
+    /// We currently pregenerating all the circles, maybe we should store the stages and generate
+    /// on build
     circles: Vec<CircleParticle>,
 }
 
@@ -46,29 +50,71 @@ impl ExplosionBuilder {
     /// Set the min/max angle for random balls in the next
     /// stage of the explosion
     pub fn with_angle(mut self, min: f32, max: f32) -> Self {
-        self.angle_min = min;
-        self.angle_max = max;
+        self.angle = MinMax::new(min, max);
         self
     }
 
     /// Set the min/max dist for random balls in the next
     /// stage of the explosion
     pub fn with_dist(mut self, min: f32, max: f32) -> Self {
-        self.dist_min = min;
-        self.dist_max = max;
+        self.dist = MinMax::new(min, max);
+        self
+    }
+
+    /// Set the min/max radius for random balls in the next
+    /// stage of the explosion
+    pub fn with_radius(mut self, min: f32, max: f32) -> Self {
+        self.radius = MinMax::new(min, max);
+        self
+    }
+
+    /// Set the min/max delay for random balls in the next
+    /// stage of the explosion
+    pub fn with_delay(mut self, min: f32, max: f32) -> Self {
+        self.delay = MinMax::new(min, max);
+        self
+    }
+
+    pub fn with_count(mut self, min: u8, max: u8) -> Self {
+        self.circles_per_stage = MinMax::new(min, max);
+        self
+    }
+
+    pub fn with_age(mut self, min: f32, max: f32) -> Self {
+        self.stage_time = MinMax::new(min, max);
         self
     }
 
     /// Add a stage of the explosion
-    pub fn with_stage(mut self, time: f32, count: u8) -> Self {
-        todo!();
-        self
+    pub fn with_circle_stage(mut self) -> Self {
+        assert!(self.stage_time.max != 0., "Max Stage time can not be zero!");
+        let mut time = MinMax {
+            min: f32::MAX,
+            max: f32::MIN,
+        };
+        let desired_circles = self.circles_per_stage.rand_int();
+        for _i in 0..desired_circles {
+            let t = self.stage_time.rand();
+            let d = self.delay.rand();
+            time = time.append(t + d);
+            let center = self.center.clone();
+            let velocity = self.velocity.clone();
+            let cp = CircleParticle::new(center, self.radius.rand(), YELLOW)
+                .with_ttl(t)
+                .with_delay(d)
+                .with_velocity(velocity);
+            self.circles.push(cp);
+        }
+        let time = time.avg();
+        self.with_delay(time * 0.4, time * 0.8)
     }
 
     pub fn build(self) -> Explosion {
+        assert!(self.circles.len() > 0, "Need at least one circle stage");
         Explosion {
             circles: self.circles,
-            center: self.center,
+            // center: self.center,
+            ..Default::default()
         }
     }
 }
@@ -76,9 +122,34 @@ impl ExplosionBuilder {
 impl Explosion {
     pub fn new(center: CenterPt, velocity: Velocity) -> ExplosionBuilder {
         ExplosionBuilder {
-            velocity: Velocity(0., -2.),
-            angle_max: PI * 2.,
+            center,
+            velocity,
+            circles_per_stage: MinMax::new(1, 1),
+            radius: MinMax::new(10., 10.),
+            angle: MinMax::new(0., PI * 2.),
             ..Default::default()
         }
     }
 }
+
+impl Drawable for Explosion {
+    fn draw(&self) {
+        self.circles.iter().for_each(|c| c.draw())
+    }
+}
+
+impl Updateable for Explosion {
+    fn update(&mut self, delta_time: f32) {
+        self.circles.iter_mut().for_each(|c| c.update(delta_time))
+    }
+}
+
+impl IsAlive for Explosion {
+    fn is_alive(&self) -> bool {
+        self.circles.iter().find(|c| c.is_alive()).is_some()
+    }
+}
+
+impl AliveUpdatable for Explosion {}
+
+impl Particle for Explosion {}

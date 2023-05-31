@@ -6,28 +6,15 @@ use macroquad::{prelude::Color, shapes::draw_circle};
 
 use super::Particle;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct CircleParticle {
     center: CenterPt,
     radius: f32,
     color: Color,
     velocity: Velocity,
     accel: Accel,
-    visible: bool,
-    alive_timer: Option<AliveTimer>,
-}
-
-impl std::fmt::Debug for CircleParticle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CircleParticle")
-            .field("center", &self.center)
-            .field("radius", &self.radius)
-            .field("color", &self.color)
-            .field("velocity", &self.velocity)
-            .field("accel", &self.accel)
-            .field("visible", &self.visible)
-            .finish()
-    }
+    ttl: f32,
+    delay: f32,
 }
 
 impl CircleParticle {
@@ -36,7 +23,7 @@ impl CircleParticle {
             center,
             radius,
             color,
-            visible: true,
+            ttl: 5.0,
             ..Default::default()
         }
     }
@@ -51,15 +38,24 @@ impl CircleParticle {
         self
     }
 
-    pub fn with_ttl(mut self, v: f32) -> Self {
-        self.alive_timer = Some(AliveTimer::new(v));
+    pub fn with_delay(mut self, v: f32) -> Self {
+        self.delay = v;
         self
+    }
+
+    pub fn with_ttl(mut self, v: f32) -> Self {
+        self.ttl = v;
+        self
+    }
+
+    pub fn is_visible(&self) -> bool {
+        self.ttl > 0. && self.delay <= 0.
     }
 }
 
 impl IsAlive for CircleParticle {
     fn is_alive(&self) -> bool {
-        self.visible
+        self.delay > 0. && self.ttl > 0.
     }
 }
 
@@ -67,7 +63,7 @@ impl Particle for CircleParticle {}
 
 impl Drawable for CircleParticle {
     fn draw(&self) {
-        if self.visible {
+        if self.is_visible() {
             draw_circle(self.center.0, self.center.1, self.radius, self.color)
         }
     }
@@ -75,14 +71,13 @@ impl Drawable for CircleParticle {
 
 impl Updateable for CircleParticle {
     fn update(&mut self, delta_time: f32) {
-        if let Some(timer) = &mut self.alive_timer {
-            timer.update(delta_time);
-            if !timer.is_alive() {
-                self.visible = false;
-            }
+        if self.delay > 0. {
+            self.delay -= delta_time;
+        } else if self.ttl > 0. {
+            self.ttl -= delta_time;
+            let vel = self.velocity * self.accel * delta_time;
+            log::debug!("vel = {:?}", vel);
+            self.center = self.center + vel;
         }
-        let vel = self.velocity * self.accel * delta_time;
-        log::debug!("vel = {:?}", vel);
-        self.center = self.center + vel;
     }
 }

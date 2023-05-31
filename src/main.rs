@@ -3,7 +3,7 @@ use std::{cell::RefCell, matches, rc::Rc};
 use anyhow::Result;
 use cowshmup::{
     drawable::{Drawable, Graphic},
-    particle::CircleParticle,
+    particle::Explosion,
     updateable::Updateable,
     world::{RcWorld, World},
 };
@@ -28,6 +28,7 @@ pub struct GameData {
 
 impl GameData {
     fn update_game(&mut self, delta_time: f32) {
+        self.time += delta_time;
         self.handle_common_input(delta_time);
         self.world.update(delta_time);
         self.fps = get_fps();
@@ -119,12 +120,15 @@ async fn main() -> Result<()> {
     log::info!("Hello, World!");
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
-    let part = CircleParticle::new(
+    let part = Explosion::new(
         (screen_width() / 2.0, screen_height() / 2.0).into(),
-        64.0,
-        YELLOW,
+        (-10., -10.).into(),
     )
-    .with_velocity((-10., -10.).into());
+    .with_age(5., 5.)
+    .with_circle_stage()
+    .build();
+    /* 64.0,
+    YELLOW, */
 
     world.add_particle(Box::new(part));
     let mut game = GameData {

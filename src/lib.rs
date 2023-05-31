@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod alive;
 pub mod drawable;
+pub mod minmax;
 pub mod particle;
 pub mod timers;
 pub mod updateable;
