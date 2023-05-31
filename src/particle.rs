@@ -97,8 +97,8 @@ impl ExplosionBuilder {
             let t = self.stage_time.rand();
             let d = self.delay.rand();
             time = time.append(t + d);
-            let center = self.center.clone();
-            let velocity = self.velocity.clone();
+            let center = self.center;
+            let velocity = self.velocity;
             let cp = CircleParticle::new(center, self.radius.rand(), YELLOW)
                 .with_ttl(t)
                 .with_delay(d)
@@ -110,17 +110,17 @@ impl ExplosionBuilder {
     }
 
     pub fn build(self) -> Explosion {
-        assert!(self.circles.len() > 0, "Need at least one circle stage");
+        assert!(self.circles.is_empty());
         Explosion {
             circles: self.circles,
             // center: self.center,
-            ..Default::default()
+            // ..Default::default()
         }
     }
 }
 
 impl Explosion {
-    pub fn new(center: CenterPt, velocity: Velocity) -> ExplosionBuilder {
+    pub fn begin(center: CenterPt, velocity: Velocity) -> ExplosionBuilder {
         ExplosionBuilder {
             center,
             velocity,
@@ -146,7 +146,7 @@ impl Updateable for Explosion {
 
 impl IsAlive for Explosion {
     fn is_alive(&self) -> bool {
-        self.circles.iter().find(|c| c.is_alive()).is_some()
+        self.circles.iter().any(|c| c.is_alive())
     }
 }
 

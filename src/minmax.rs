@@ -42,7 +42,7 @@ where
             self.min = v.clone()
         }
         if v > self.max {
-            self.max = v.clone()
+            self.max = v
         }
         self
     }

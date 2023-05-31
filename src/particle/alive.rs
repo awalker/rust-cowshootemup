@@ -1,6 +1,5 @@
 use crate::{
-    alive::IsAlive, drawable::Drawable, timers::AliveTimer, updateable::Updateable, Accel,
-    CenterPt, Velocity,
+    alive::IsAlive, drawable::Drawable, updateable::Updateable, Accel, CenterPt, Velocity,
 };
 use macroquad::{prelude::Color, shapes::draw_circle};
 

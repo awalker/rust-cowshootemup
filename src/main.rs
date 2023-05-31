@@ -1,3 +1,4 @@
+/// Cow Shoot 'em up in Rust
 use std::{cell::RefCell, matches, rc::Rc};
 
 use anyhow::Result;
@@ -120,7 +121,7 @@ async fn main() -> Result<()> {
     log::info!("Hello, World!");
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
-    let part = Explosion::new(
+    let part = Explosion::begin(
         (screen_width() / 2.0, screen_height() / 2.0).into(),
         (-10., -10.).into(),
     )
