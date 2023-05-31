@@ -54,7 +54,7 @@ impl CircleParticle {
 
 impl IsAlive for CircleParticle {
     fn is_alive(&self) -> bool {
-        self.delay > 0. && self.ttl > 0.
+        self.delay >= 0. && self.ttl > 0.
     }
 }
 

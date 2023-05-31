@@ -110,7 +110,7 @@ impl ExplosionBuilder {
     }
 
     pub fn build(self) -> Explosion {
-        assert!(self.circles.is_empty());
+        assert!(!self.circles.is_empty());
         Explosion {
             circles: self.circles,
             // center: self.center,
@@ -120,10 +120,9 @@ impl ExplosionBuilder {
 }
 
 impl Explosion {
-    pub fn begin(center: CenterPt, velocity: Velocity) -> ExplosionBuilder {
+    pub fn begin(center: CenterPt) -> ExplosionBuilder {
         ExplosionBuilder {
             center,
-            velocity,
             circles_per_stage: MinMax::new(1, 1),
             radius: MinMax::new(10., 10.),
             angle: MinMax::new(0., PI * 2.),
@@ -140,7 +139,15 @@ impl Drawable for Explosion {
 
 impl Updateable for Explosion {
     fn update(&mut self, delta_time: f32) {
-        self.circles.iter_mut().for_each(|c| c.update(delta_time))
+        self.circles.iter_mut().for_each(|c| c.update(delta_time));
+        if self.circles.iter().any(|c| !c.is_alive()) {
+            self.circles = self
+                .circles
+                .clone()
+                .into_iter()
+                .filter(|c| c.is_alive())
+                .collect::<Vec<_>>()
+        }
     }
 }
 

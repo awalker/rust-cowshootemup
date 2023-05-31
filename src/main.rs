@@ -121,13 +121,10 @@ async fn main() -> Result<()> {
     log::info!("Hello, World!");
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
-    let part = Explosion::begin(
-        (screen_width() / 2.0, screen_height() / 2.0).into(),
-        (-10., -10.).into(),
-    )
-    .with_age(5., 5.)
-    .with_circle_stage()
-    .build();
+    let part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into())
+        .with_age(5., 5.)
+        .with_circle_stage()
+        .build();
     /* 64.0,
     YELLOW, */
 
