@@ -1,9 +1,16 @@
 mod circle;
 use crate::{
-    alive::IsAlive, drawable::Drawable, minmax::MinMax, updateable::Updateable, CenterPt, Velocity,
+    alive::IsAlive,
+    drawable::{Drawable, Gizmo},
+    minmax::MinMax,
+    updateable::Updateable,
+    CenterPt, Velocity,
 };
 pub use circle::CircleParticle;
-use macroquad::prelude::{Color, YELLOW};
+use macroquad::{
+    prelude::{Color, GREEN, YELLOW},
+    shapes::draw_line,
+};
 use std::f32::consts::PI;
 
 pub trait Particle: Drawable + Updateable + IsAlive {
@@ -94,26 +101,27 @@ impl ExplosionBuilder {
     /// Add a stage of the explosion
     pub fn with_circle_stage(mut self) -> Self {
         assert!(self.stage_time.max != 0., "Max Stage time can not be zero!");
-        let mut time = MinMax {
-            min: f32::MAX,
-            max: f32::MIN,
-        };
         let desired_circles = self.circles_per_stage.rand_int();
         for _i in 0..desired_circles {
             let t = self.stage_time.rand();
             let d = self.delay.rand();
-            time = time.append(t + d);
-            let center = self.center;
-            let velocity = self.velocity;
-            let cp = CircleParticle::new(center, self.radius.rand(), self.color)
-                .with_ttl(t)
-                .with_delay(d)
-                .with_velocity(velocity);
+            let (cx, cy) = self.center.into();
+            let (vx, vy) = self.velocity.into();
+            let (ax, ay) = self.angle.rand().sin_cos();
+            let r = self.dist.rand();
+
+            let cp = CircleParticle::new(
+                (cx + ax * r, cy + ay * r).into(),
+                self.radius.rand(),
+                self.color,
+            )
+            .with_ttl(t)
+            .with_delay(d)
+            .with_velocity((vx + ax * r, vy + ay * r).into());
             dbg!(&cp);
             self.circles.push(cp);
         }
-        let time = time.avg();
-        self.with_delay(time * 0.4, time * 0.8)
+        self
     }
 
     pub fn build(self) -> Explosion {
@@ -144,6 +152,36 @@ impl Drawable for Explosion {
         self.circles.iter().for_each(|c| c.draw())
     }
 }
+
+impl Drawable for ExplosionBuilder {
+    fn draw(&self) {}
+    fn draw_gizmos(&self) {
+        let color = GREEN;
+        let r = self.radius.max;
+        let ang = self.angle.min;
+        let (arc1x, arc1y) = ang.sin_cos();
+        let (arc2x, arc2y) = self.angle.max.sin_cos();
+        let (cx, cy) = self.center.into();
+        draw_line(cx, cy, cx + arc1x * r, cy + arc1y * r, 1., color);
+        draw_line(cx, cy, cx + arc2x * r, cy + arc2y * r, 1., color);
+        draw_line(
+            cx + arc1x * r,
+            cy + arc1y * r,
+            cx + arc2x * r,
+            cy + arc2y * r,
+            1.,
+            color,
+        );
+    }
+}
+
+impl IsAlive for ExplosionBuilder {
+    fn is_alive(&self) -> bool {
+        true
+    }
+}
+
+impl Gizmo for ExplosionBuilder {}
 
 impl Updateable for Explosion {
     fn update(&mut self, delta_time: f32) {

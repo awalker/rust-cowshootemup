@@ -7,7 +7,10 @@ use std::fmt::Debug;
 
 pub trait Drawable {
     fn draw(&self);
+    fn draw_gizmos(&self) {}
 }
+
+pub trait Gizmo: Drawable + crate::alive::IsAlive {}
 
 pub trait HasCenter {
     fn center(&self) -> CenterPt;

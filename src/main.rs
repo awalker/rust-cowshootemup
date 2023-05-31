@@ -27,6 +27,7 @@ pub struct GameData {
     fps: i32,
     time: f32,
     state: State,
+    gizmos: bool,
 }
 
 impl GameData {
@@ -43,6 +44,9 @@ impl GameData {
 
     fn handle_common_input(&mut self, _delta_time: f32) {
         self.step();
+        if input::is_key_pressed(KeyCode::C) {
+            self.gizmos = !self.gizmos;
+        }
         if input::is_key_pressed(KeyCode::Escape) {
             self.press_escape();
         } else if input::is_key_pressed(KeyCode::Space) {
@@ -77,9 +81,16 @@ impl GameData {
         draw_text(&format!("HELLO {}", self.fps), 20.0, 20.0, 20.0, DARKGRAY);
         draw_text(&format!("TIME {}", self.time), 20.0, 40.0, 20.0, DARKGRAY);
         draw_text(
-            &format!("State {:?}", self.state),
+            &format!("Gizmos {}", self.gizmos),
             20.0,
             60.0,
+            20.0,
+            DARKGRAY,
+        );
+        draw_text(
+            &format!("State {:?}", self.state),
+            20.0,
+            80.0,
             20.0,
             DARKGRAY,
         );
@@ -140,6 +151,12 @@ impl Drawable for GameData {
             State::Exit => self.draw_game(),
         }
     }
+
+    fn draw_gizmos(&self) {
+        if self.gizmos {
+            self.world.draw_gizmos();
+        }
+    }
 }
 
 impl State {
@@ -160,27 +177,33 @@ async fn main() -> Result<()> {
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
     let part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into())
         .with_age(5., 5.)
-        .with_radius(8., 128.)
-        .with_circle_stage()
+        .with_radius(80., 80.)
+        .with_circle_stage();
+    world.add_gizmos(Box::new(part.clone()));
+    let part = part
+        .with_angle(PI * 0.65, PI * 1.35)
+        .with_delay(2., 4.)
         .with_radius(32., 64.)
         .with_count(3, 4)
-        .with_angle(PI, PI * 2.)
         .with_dist(10., 25.)
         .with_color(BROWN)
-        .with_circle_stage()
-        .build();
+        .with_circle_stage();
+    world.add_gizmos(Box::new(part.clone()));
+    let part = part.build();
     /* 64.0,
     YELLOW, */
 
     world.add_particle(Box::new(part));
     let mut game = GameData {
         world: Rc::from(RefCell::new(world)),
+        gizmos: true,
         ..GameData::default()
     };
 
     while !game.state.is_exit() {
         game.update(get_frame_time());
         game.draw();
+        game.draw_gizmos();
         next_frame().await;
     }
     Ok(())
