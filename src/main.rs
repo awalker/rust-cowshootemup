@@ -14,6 +14,8 @@ use macroquad::{input, prelude::*};
 enum State {
     #[default]
     Init,
+    Step,
+    StepAdvance,
     Playing,
     Paused,
     Exit,
@@ -40,10 +42,25 @@ impl GameData {
     }
 
     fn handle_common_input(&mut self, _delta_time: f32) {
+        self.step();
         if input::is_key_pressed(KeyCode::Escape) {
             self.press_escape();
         } else if input::is_key_pressed(KeyCode::Space) {
             self.press_space();
+        }
+    }
+
+    fn step(&mut self) {
+        if matches!(self.state, State::Step | State::StepAdvance) {
+            if input::is_key_down(KeyCode::S) {
+                self.state = State::StepAdvance;
+            }
+            if input::is_key_released(KeyCode::S) {
+                self.state = State::Step
+            }
+            if input::is_key_pressed(KeyCode::G) {
+                self.state = State::Playing
+            }
         }
     }
 
@@ -59,16 +76,28 @@ impl GameData {
         draw_rectangle(screen_width() / 2.0 - x, 100.0, 120.0, 60.0, GREEN);
         draw_text(&format!("HELLO {}", self.fps), 20.0, 20.0, 20.0, DARKGRAY);
         draw_text(&format!("TIME {}", self.time), 20.0, 40.0, 20.0, DARKGRAY);
+        draw_text(
+            &format!("State {:?}", self.state),
+            20.0,
+            60.0,
+            20.0,
+            DARKGRAY,
+        );
     }
 
     fn draw_paused(&self) {
         draw_text("Paused", 120.0, 120.0, 20.0, WHITE);
     }
 
+    fn draw_step(&self) {
+        draw_text("Press s to Step", 120.0, 120.0, 20.0, WHITE);
+    }
+
     fn press_escape(&mut self) {
         match self.state {
             State::Playing => self.state = State::Exit,
             State::Paused => self.state = State::Playing,
+            State::Step => self.state = State::Exit,
             _ => {}
         }
     }
@@ -83,9 +112,13 @@ impl GameData {
 impl Updateable for GameData {
     fn update(&mut self, delta_time: f32) {
         match self.state {
-            State::Init => self.state = State::Playing,
+            State::Init => self.state = State::Step,
             State::Playing => self.update_game(delta_time),
             State::Paused => self.update_paused(delta_time),
+            State::Step => self.handle_common_input(delta_time),
+            State::StepAdvance => {
+                self.update_game(delta_time);
+            }
             State::Exit => {}
         }
     }
@@ -100,6 +133,10 @@ impl Drawable for GameData {
                 self.draw_game();
                 self.draw_paused();
             }
+            State::Step | State::StepAdvance => {
+                self.draw_game();
+                self.draw_step();
+            }
             State::Exit => self.draw_game(),
         }
     }
@@ -111,7 +148,7 @@ impl State {
     }
 
     fn is_playing(&self) -> bool {
-        matches!(self, State::Playing)
+        matches!(self, State::Playing | State::Step | State::StepAdvance)
     }
 }
 
