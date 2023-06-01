@@ -1,6 +1,6 @@
 use rand::{distributions::Standard, prelude::*};
 use std::ops::{Add, Div, Mul, Rem, Sub};
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct MinMax<T> {
     pub min: T,
     pub max: T,

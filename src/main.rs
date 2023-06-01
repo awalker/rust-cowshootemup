@@ -166,20 +166,23 @@ async fn main() -> Result<()> {
     let mut editor = Editor::default();
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
-    let part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into())
+    let mut part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into());
+    let stage = part
+        .build_stage()
         .with_age(5., 5.)
         .with_radius(80., 80.)
-        .with_circle_stage();
-    world.add_gizmos(Box::new(part.clone()));
-    let part = part
+        .with_circle_stage(&mut part);
+    world.add_gizmos(Rc::new(stage.clone()));
+    let stage = part
+        .build_stage()
         .with_angle(PI * 0.65, PI * 1.35)
         .with_delay(2., 4.)
         .with_radius(32., 64.)
         .with_count(3, 4)
         .with_dist(10., 25.)
         .with_color(BROWN)
-        .with_circle_stage();
-    world.add_gizmos(Box::new(part.clone()));
+        .with_circle_stage(&mut part);
+    world.add_gizmos(Rc::new(stage.clone()));
     let part = part.build();
     /* 64.0,
     YELLOW, */

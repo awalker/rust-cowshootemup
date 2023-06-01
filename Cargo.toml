@@ -13,4 +13,5 @@ macroquad = { version = "0.3.25", features = ["log", "backtrace"] }
 rand = "0.8.5"
 rayon = "1.7.0"
 serde = { version = "1.0.163", features = ["derive"] }
+serde_yaml = "0.9.21"
 thiserror = "1.0.40"

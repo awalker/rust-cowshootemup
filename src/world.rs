@@ -13,7 +13,7 @@ use crate::{
 pub struct World {
     graphics: Vec<Graphic>,
     particles: Vec<Box<dyn Particle>>,
-    gizmos: Vec<Box<dyn Gizmo>>,
+    gizmos: Vec<Rc<dyn Gizmo>>,
 }
 
 impl World {
@@ -25,7 +25,7 @@ impl World {
         self.particles.push(d)
     }
 
-    pub fn add_gizmos(&mut self, d: Box<dyn Gizmo>) {
+    pub fn add_gizmos(&mut self, d: Rc<dyn Gizmo>) {
         self.gizmos.push(d);
     }
 }

@@ -25,26 +25,32 @@ pub struct Explosion {
     // lines, sparks, or whatever
 }
 
-#[derive(Debug, Default, Clone)]
-pub struct ExplosionBuilder {
-    center: CenterPt,
-    velocity: Velocity,
-    stage_time: MinMax<f32>,
-    circles_per_stage: MinMax<u8>,
+#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ExplosionStage {
+    pub center: CenterPt,
+    pub velocity: Velocity,
+    pub stage_time: MinMax<f32>,
+    pub circles_per_stage: MinMax<u8>,
     /// a random angle from the center at which to spawn particles
-    angle: MinMax<f32>,
+    pub angle: MinMax<f32>,
     /// a random distance from the center at which to spawn particles
-    dist: MinMax<f32>,
+    pub dist: MinMax<f32>,
     /// How large is the particle (circle/spark)
-    radius: MinMax<f32>,
-    delay: MinMax<f32>,
-    color: Color,
-    /// We currently pregenerating all the circles, maybe we should store the stages and generate
-    /// on build
-    circles: Vec<CircleParticle>,
+    pub radius: MinMax<f32>,
+    pub delay: MinMax<f32>,
+    #[serde(with = "crate::utils::color_format")]
+    pub color: Color,
 }
 
-impl ExplosionBuilder {
+#[derive(Debug, Default, Clone)]
+pub struct ExplosionBuilder {
+    current: ExplosionStage,
+    /// We currently pregenerating all the circles, maybe we should store the stages and generate
+    /// on build
+    stages: Vec<ExplosionStage>,
+}
+
+impl ExplosionStage {
     pub fn at(mut self, center: CenterPt) -> Self {
         self.center = center;
         self
@@ -98,10 +104,9 @@ impl ExplosionBuilder {
         self
     }
 
-    /// Add a stage of the explosion
-    pub fn with_circle_stage(mut self) -> Self {
-        assert!(self.stage_time.max != 0., "Max Stage time can not be zero!");
+    pub fn generate_circle_particles(&self) -> Vec<CircleParticle> {
         let desired_circles = self.circles_per_stage.rand_int();
+        let mut circles = Vec::new();
         for _i in 0..desired_circles {
             let t = self.stage_time.rand();
             let d = self.delay.rand();
@@ -118,16 +123,43 @@ impl ExplosionBuilder {
             .with_ttl(t)
             .with_delay(d)
             .with_velocity((vx + ax * r, vy + ay * r).into());
-            dbg!(&cp);
-            self.circles.push(cp);
+            circles.push(cp);
         }
+        circles
+    }
+
+    pub fn with_circle_stage(self, b: &mut ExplosionBuilder) -> Self {
+        b.current = self.clone();
+        assert!(self.stage_time.max != 0., "Max Stage time can not be zero!");
+        b.stages.push(self.clone());
+        self
+    }
+}
+
+impl ExplosionBuilder {
+    pub fn build_stage(&self) -> ExplosionStage {
+        self.current.clone()
+    }
+
+    /// Add a stage of the explosion
+    pub fn with_circle_stage(mut self, stage: ExplosionStage) -> Self {
+        self.current = stage.clone();
+        assert!(
+            stage.stage_time.max != 0.,
+            "Max Stage time can not be zero!"
+        );
+        self.stages.push(stage);
         self
     }
 
     pub fn build(self) -> Explosion {
-        assert!(!self.circles.is_empty());
+        assert!(!self.stages.is_empty());
         Explosion {
-            circles: self.circles,
+            circles: self
+                .stages
+                .iter()
+                .flat_map(|f| f.generate_circle_particles())
+                .collect(),
             // center: self.center,
             // ..Default::default()
         }
@@ -137,11 +169,14 @@ impl ExplosionBuilder {
 impl Explosion {
     pub fn begin(center: CenterPt) -> ExplosionBuilder {
         ExplosionBuilder {
-            center,
-            circles_per_stage: MinMax::new(1, 1),
-            radius: MinMax::new(10., 10.),
-            angle: MinMax::new(0., PI * 2.),
-            color: YELLOW,
+            current: ExplosionStage {
+                center,
+                circles_per_stage: MinMax::new(1, 1),
+                radius: MinMax::new(10., 10.),
+                angle: MinMax::new(0., PI * 2.),
+                color: YELLOW,
+                ..Default::default()
+            },
             ..Default::default()
         }
     }
@@ -153,7 +188,7 @@ impl Drawable for Explosion {
     }
 }
 
-impl Drawable for ExplosionBuilder {
+impl Drawable for ExplosionStage {
     fn draw(&self) {}
     fn draw_gizmos(&self) {
         let color = GREEN;
@@ -175,13 +210,13 @@ impl Drawable for ExplosionBuilder {
     }
 }
 
-impl IsAlive for ExplosionBuilder {
+impl IsAlive for ExplosionStage {
     fn is_alive(&self) -> bool {
         true
     }
 }
 
-impl Gizmo for ExplosionBuilder {}
+impl Gizmo for ExplosionStage {}
 
 impl Updateable for Explosion {
     fn update(&mut self, delta_time: f32) {
