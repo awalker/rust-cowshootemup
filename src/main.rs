@@ -1,4 +1,6 @@
 /// Cow Shoot 'em up in Rust
+mod editor;
+mod state;
 use std::{cell::RefCell, f32::consts::PI, matches, rc::Rc};
 
 use anyhow::Result;
@@ -8,18 +10,9 @@ use cowshmup::{
     updateable::Updateable,
     world::{RcWorld, World},
 };
+use editor::Editor;
 use macroquad::{input, prelude::*};
-
-#[derive(Debug, Default, Clone, Copy)]
-enum State {
-    #[default]
-    Init,
-    Step,
-    StepAdvance,
-    Playing,
-    Paused,
-    Exit,
-}
+use state::State;
 
 #[derive(Default, Clone, Debug)]
 pub struct GameData {
@@ -44,6 +37,9 @@ impl GameData {
 
     fn handle_common_input(&mut self, _delta_time: f32) {
         self.step();
+        if input::is_key_pressed(KeyCode::E) {
+            self.state = State::Editor;
+        }
         if input::is_key_pressed(KeyCode::C) {
             self.gizmos = !self.gizmos;
         }
@@ -123,7 +119,7 @@ impl GameData {
 impl Updateable for GameData {
     fn update(&mut self, delta_time: f32) {
         match self.state {
-            State::Init => self.state = State::Step,
+            State::Init => self.state = State::Paused,
             State::Playing => self.update_game(delta_time),
             State::Paused => self.update_paused(delta_time),
             State::Step => self.handle_common_input(delta_time),
@@ -131,6 +127,7 @@ impl Updateable for GameData {
                 self.update_game(delta_time);
             }
             State::Exit => {}
+            State::Editor => {}
         }
     }
 }
@@ -149,6 +146,9 @@ impl Drawable for GameData {
                 self.draw_step();
             }
             State::Exit => self.draw_game(),
+            State::Editor => {
+                self.draw_game();
+            }
         }
     }
 
@@ -159,20 +159,11 @@ impl Drawable for GameData {
     }
 }
 
-impl State {
-    fn is_exit(&self) -> bool {
-        matches!(self, State::Exit)
-    }
-
-    fn is_playing(&self) -> bool {
-        matches!(self, State::Playing | State::Step | State::StepAdvance)
-    }
-}
-
 #[macroquad::main("OMG Cows")]
 async fn main() -> Result<()> {
     flexi_logger::Logger::try_with_env_or_str("warn")?.start()?;
     log::info!("Hello, World!");
+    let mut editor = Editor::default();
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
     let part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into())
@@ -204,6 +195,14 @@ async fn main() -> Result<()> {
         game.update(get_frame_time());
         game.draw();
         game.draw_gizmos();
+        if game.state.is_editor() {
+            editor.show_gizmos = game.gizmos;
+            editor.draw_editor_update();
+            game.gizmos = editor.show_gizmos;
+            if let Some(new_state) = editor.state.take() {
+                game.state = new_state;
+            }
+        }
         next_frame().await;
     }
     Ok(())
