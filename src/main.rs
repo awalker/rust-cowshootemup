@@ -172,6 +172,7 @@ async fn main() -> Result<()> {
         .with_age(5., 5.)
         .with_radius(80., 80.)
         .with_circle_stage(&mut part);
+    editor.explosion_stages.push(stage.clone());
     world.add_gizmos(Rc::new(stage.clone()));
     let stage = part
         .build_stage()
@@ -182,6 +183,7 @@ async fn main() -> Result<()> {
         .with_dist(10., 25.)
         .with_color(BROWN)
         .with_circle_stage(&mut part);
+    editor.explosion_stages.push(stage.clone());
     world.add_gizmos(Rc::new(stage.clone()));
     let part = part.build();
     /* 64.0,
@@ -196,16 +198,18 @@ async fn main() -> Result<()> {
 
     while !game.state.is_exit() {
         game.update(get_frame_time());
+        egui_macroquad::ui(|egui_ctx| {
+            if game.state.is_editor() {
+                editor.update_egui(egui_ctx);
+                game.gizmos = editor.show_gizmos;
+                if let Some(new_state) = editor.state.take() {
+                    game.state = new_state;
+                }
+            }
+        });
         game.draw();
         game.draw_gizmos();
-        if game.state.is_editor() {
-            editor.show_gizmos = game.gizmos;
-            editor.draw_editor_update();
-            game.gizmos = editor.show_gizmos;
-            if let Some(new_state) = editor.state.take() {
-                game.state = new_state;
-            }
-        }
+        egui_macroquad::draw();
         next_frame().await;
     }
     Ok(())

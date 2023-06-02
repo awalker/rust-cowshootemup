@@ -7,6 +7,7 @@ use crate::{
     CenterPt, Velocity,
 };
 pub use circle::CircleParticle;
+use egui_macroquad::egui::Ui;
 use macroquad::{
     prelude::{Color, GREEN, YELLOW},
     shapes::draw_line,
@@ -133,6 +134,10 @@ impl ExplosionStage {
         assert!(self.stage_time.max != 0., "Max Stage time can not be zero!");
         b.stages.push(self.clone());
         self
+    }
+
+    pub fn editor_ui(&mut self, ui: &mut Ui) {
+        ui.label(format!("{:?}", self));
     }
 }
 
