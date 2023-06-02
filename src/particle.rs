@@ -7,7 +7,10 @@ use crate::{
     CenterPt, Velocity,
 };
 pub use circle::CircleParticle;
-use egui_macroquad::egui::Ui;
+use egui_macroquad::egui::{
+    color_picker::{self, color_picker_color32, Alpha},
+    Grid, Rgba, Ui,
+};
 use macroquad::{
     prelude::{Color, GREEN, YELLOW},
     shapes::draw_line,
@@ -28,19 +31,19 @@ pub struct Explosion {
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExplosionStage {
-    pub center: CenterPt,
-    pub velocity: Velocity,
-    pub stage_time: MinMax<f32>,
-    pub circles_per_stage: MinMax<u8>,
+    center: CenterPt,
+    velocity: Velocity,
+    stage_time: MinMax<f32>,
+    circles_per_stage: MinMax<u8>,
     /// a random angle from the center at which to spawn particles
-    pub angle: MinMax<f32>,
+    angle: MinMax<f32>,
     /// a random distance from the center at which to spawn particles
-    pub dist: MinMax<f32>,
+    dist: MinMax<f32>,
     /// How large is the particle (circle/spark)
-    pub radius: MinMax<f32>,
-    pub delay: MinMax<f32>,
+    radius: MinMax<f32>,
+    delay: MinMax<f32>,
     #[serde(with = "crate::utils::color_format")]
-    pub color: Color,
+    color: Color,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -50,6 +53,8 @@ pub struct ExplosionBuilder {
     /// on build
     stages: Vec<ExplosionStage>,
 }
+
+const TWO_PI: f32 = PI * 2.;
 
 impl ExplosionStage {
     pub fn at(mut self, center: CenterPt) -> Self {
@@ -136,8 +141,46 @@ impl ExplosionStage {
         self
     }
 
-    pub fn editor_ui(&mut self, ui: &mut Ui) {
-        ui.label(format!("{:?}", self));
+    pub fn editor_ui(&mut self, ui: &mut Ui, id: usize) {
+        ui.heading(format!("Explosion stage #{}", id + 1));
+        Grid::new(format!("particle_es_{}", id)).show(ui, |ui| {
+            ui.label("Angle");
+            self.angle.editor_ui(ui, 0_f32..=TWO_PI);
+            ui.end_row();
+
+            ui.label("Circles");
+            self.circles_per_stage.editor_int_ui(ui, 1..=10);
+            ui.end_row();
+
+            ui.label("Dist");
+            self.dist.editor_ui(ui, 0_f32..=200_f32);
+            ui.end_row();
+
+            ui.label("Radius");
+            self.radius.editor_ui(ui, 0_f32..=200_f32);
+            ui.end_row();
+
+            ui.label("Delay");
+            self.delay.editor_ui(ui, 0_f32..=20_f32);
+            ui.end_row();
+
+            ui.label("Color");
+            // FIXME: This is wrong
+            let mut srgba = Rgba::from_rgba_premultiplied(
+                self.color.r,
+                self.color.b,
+                self.color.g,
+                self.color.a,
+            );
+            if color_picker::color_edit_button_rgba(ui, &mut srgba, Alpha::OnlyBlend).changed() {
+                // TODO: Color changed...
+            }
+            /* ui.horizontal(|ui| {
+                ui.label("Color");
+                ui.label("cell");
+            }); */
+            ui.end_row();
+        });
     }
 }
 

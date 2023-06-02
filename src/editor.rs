@@ -15,29 +15,16 @@ pub struct Editor {
     pub explosion_stages: Vec<ExplosionStage>,
 }
 
-/* for i in 0..30 {
-    Group::new(hash!("exp", i), Vec2::new(300., 80.)).ui(ui, |ui| {
-        ui.label(Vec2::new(10., 10.), &format!("Item N {}", i));
-        ui.label(Vec2::new(260., 40.), "10/10");
-        ui.label(Vec2::new(200., 58.), &format!("{} kr", 800));
-        if ui.button(Vec2::new(260., 55.), "buy") {
-            // data.inventory.push(format!("Item {}", i));
-        }
-    });
-} */
-
 impl Editor {
     pub fn update_egui(&mut self, egui_ctx: &egui::Context) {
         egui::TopBottomPanel::top("State Menu").show(egui_ctx, |ui| {
             self.state_window_ui(ui);
         });
         egui::SidePanel::right("Explosion").show(egui_ctx, |ui| {
-            ui.label("Explosion");
+            ui.heading("Explosion");
             for (i, exp) in self.explosion_stages.iter_mut().enumerate() {
-                // Group::new(hash!("exp", i), Vec2::new(w, 40.)).ui(ui, |ui| exp.editor_ui(ui));
                 ui.group(|ui| {
-                    ui.label(format!("Stage {}", i));
-                    exp.editor_ui(ui);
+                    exp.editor_ui(ui, i);
                 });
             }
         });
