@@ -41,12 +41,23 @@ impl Editor {
             self.state_window_ui(ui);
         });
         egui::SidePanel::right("Explosion").show(egui_ctx, |ui| {
-            ui.heading("Explosion");
-            for (i, exp) in self.explosion_stages.iter_mut().enumerate() {
-                ui.group(|ui| {
-                    exp.editor_ui(ui, i);
-                });
-            }
+            ui.horizontal(|ui| {
+                ui.heading("Explosion");
+                if ui.small_button("Add Stage").clicked() {
+                    if let Some(last) = self.explosion_stages.last() {
+                        self.explosion_stages.push(last.clone());
+                    } else {
+                        self.explosion_stages.push(ExplosionStage::default());
+                    }
+                }
+            });
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                for (i, exp) in self.explosion_stages.iter_mut().enumerate() {
+                    ui.group(|ui| {
+                        exp.editor_ui(ui, i);
+                    });
+                }
+            });
         });
     }
 

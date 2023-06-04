@@ -142,7 +142,12 @@ impl ExplosionStage {
     }
 
     pub fn editor_ui(&mut self, ui: &mut Ui, id: usize) {
-        ui.heading(format!("Explosion stage #{}", id + 1));
+        ui.horizontal(|ui| {
+            ui.heading(format!("Explosion circle stage #{}", id + 1));
+            if ui.small_button("").clicked() {
+                // clicked
+            }
+        });
         Grid::new(format!("particle_es_{}", id)).show(ui, |ui| {
             ui.label("Angle");
             self.angle.editor_ui(ui, 0_f32..=TWO_PI);
