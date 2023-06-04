@@ -12,8 +12,8 @@ use egui_macroquad::egui::{
     Grid, Rgba, Ui,
 };
 use macroquad::{
-    prelude::{Color, GREEN, YELLOW},
-    shapes::draw_line,
+    prelude::{Color, BLUE, GREEN, ORANGE, YELLOW},
+    shapes::{draw_circle_lines, draw_line},
 };
 use std::f32::consts::PI;
 
@@ -164,6 +164,10 @@ impl ExplosionStage {
             self.delay.editor_ui(ui, 0_f32..=20_f32);
             ui.end_row();
 
+            ui.label("Age");
+            self.stage_time.editor_ui(ui, 0_f32..=20_f32);
+            ui.end_row();
+
             ui.label("Color");
             // FIXME: This is wrong
             let mut srgba = Rgba::from_rgba_premultiplied(
@@ -187,6 +191,11 @@ impl ExplosionStage {
 impl ExplosionBuilder {
     pub fn build_stage(&self) -> ExplosionStage {
         self.current.clone()
+    }
+
+    pub fn with_stages(mut self, stages: Vec<ExplosionStage>) -> Self {
+        self.stages = stages;
+        self
     }
 
     /// Add a stage of the explosion
@@ -239,12 +248,18 @@ impl Drawable for Explosion {
 impl Drawable for ExplosionStage {
     fn draw(&self) {}
     fn draw_gizmos(&self) {
-        let color = GREEN;
         let r = self.radius.max;
         let ang = self.angle.min;
         let (arc1x, arc1y) = ang.sin_cos();
         let (arc2x, arc2y) = self.angle.max.sin_cos();
         let (cx, cy) = self.center.into();
+        let color = ORANGE;
+        draw_circle_lines(cx, cy, self.dist.min, 1., color);
+        draw_circle_lines(cx, cy, self.dist.max, 1., color);
+        let color = BLUE;
+        let r_range = (r - self.radius.min).max(1.);
+        draw_circle_lines(cx, cy, r - r_range / 2., r_range, color);
+        let color = GREEN;
         draw_line(cx, cy, cx + arc1x * r, cy + arc1y * r, 1., color);
         draw_line(cx, cy, cx + arc2x * r, cy + arc2y * r, 1., color);
         draw_line(

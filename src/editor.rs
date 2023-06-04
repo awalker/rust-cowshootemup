@@ -1,6 +1,10 @@
-use cowshmup::particle::ExplosionStage;
+use cowshmup::{
+    drawable::Drawable,
+    particle::{Explosion, ExplosionBuilder, ExplosionStage},
+    CenterPt,
+};
 use egui_macroquad::egui::{self, Ui};
-use macroquad::prelude::*;
+use macroquad::{prelude::*, rand};
 use serde::{Deserialize, Serialize};
 
 use crate::State;
@@ -10,13 +14,28 @@ pub struct Editor {
     #[serde(skip)]
     pub state: Option<State>,
     pub show_gizmos: bool,
-    y1: f32,
-    y2: f32,
+    pub time: f32,
+    /// Things we edit may use randomness, we need to reset that every editor frame
+    seed: Option<u64>,
+
+    // --- things we edit below here --
     pub explosion_stages: Vec<ExplosionStage>,
 }
 
 impl Editor {
-    pub fn update_egui(&mut self, egui_ctx: &egui::Context) {
+    pub fn init(&mut self) {
+        self.show_gizmos = true;
+        if self.seed.is_none() {
+            self.seed = Some(69420);
+        }
+    }
+
+    pub fn update_egui(&mut self, egui_ctx: &egui::Context, delta_time: f32) {
+        // Maybe update time
+        self.time += delta_time;
+        if let Some(seed) = self.seed {
+            rand::srand(seed);
+        }
         egui::TopBottomPanel::top("State Menu").show(egui_ctx, |ui| {
             self.state_window_ui(ui);
         });
@@ -52,5 +71,18 @@ impl Editor {
                 // ui.allocate_space(ui.available_size());
             });
         });
+    }
+
+    pub fn build_explosion(&self, center: CenterPt) -> Option<Explosion> {
+        if self.explosion_stages.is_empty() {
+            None
+        } else {
+            let builder = Explosion::begin(center).with_stages(self.explosion_stages.clone());
+            Some(builder.build())
+        }
+    }
+
+    pub fn draw_gizmos(&self) {
+        self.explosion_stages.iter().for_each(|es| es.draw_gizmos())
     }
 }

@@ -1,4 +1,4 @@
-use egui_macroquad::egui::{Slider, Ui};
+use egui_macroquad::egui::{Label, Slider, Ui};
 use rand::{distributions::Standard, prelude::*};
 use std::ops::{Add, Div, Mul, RangeInclusive, Rem, Sub};
 #[derive(Debug, Default, Clone, Copy, serde::Serialize, serde::Deserialize)]
@@ -27,6 +27,7 @@ where
         + Add<Output = T>
         + PartialOrd
         + Clone
+        + std::fmt::Display
         + egui_macroquad::egui::emath::Numeric,
     Standard: Distribution<T>,
 {
@@ -59,8 +60,14 @@ where
 
     pub fn editor_ui(&mut self, ui: &mut Ui, range: RangeInclusive<T>) {
         ui.columns(2, |cols| {
-            cols[0].add(Slider::new(&mut self.min, range.clone()).max_decimals(2));
-            cols[1].add(Slider::new(&mut self.max, range).max_decimals(2));
+            let (min, max) = range.into_inner();
+
+            if min == self.max {
+                cols[0].add(Label::new(format!("{} move max", self.min)));
+            } else {
+                cols[0].add(Slider::new(&mut self.min, min..=self.max).max_decimals(2));
+            }
+            cols[1].add(Slider::new(&mut self.max, self.min..=max).max_decimals(2));
         })
     }
 }
@@ -88,8 +95,13 @@ where
 
     pub fn editor_int_ui(&mut self, ui: &mut Ui, range: RangeInclusive<T>) {
         ui.columns(2, |cols| {
-            cols[0].add(Slider::new(&mut self.min, range.clone()).max_decimals(0));
-            cols[1].add(Slider::new(&mut self.max, range).max_decimals(0));
+            let (min, max) = range.into_inner();
+            if min == self.max {
+                cols[0].add(Label::new("move max"));
+            } else {
+                cols[0].add(Slider::new(&mut self.min, min..=self.max).max_decimals(0));
+            }
+            cols[1].add(Slider::new(&mut self.max, self.min..=max).max_decimals(0));
         })
     }
 }

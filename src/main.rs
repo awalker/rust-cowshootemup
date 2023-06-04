@@ -31,6 +31,10 @@ impl GameData {
         self.fps = get_fps();
     }
 
+    fn is_editor(&self) -> bool {
+        self.state.is_editor()
+    }
+
     fn update_paused(&mut self, delta_time: f32) {
         self.handle_common_input(delta_time);
     }
@@ -119,7 +123,7 @@ impl GameData {
 impl Updateable for GameData {
     fn update(&mut self, delta_time: f32) {
         match self.state {
-            State::Init => self.state = State::Paused,
+            State::Init => self.state = State::Editor,
             State::Playing => self.update_game(delta_time),
             State::Paused => self.update_paused(delta_time),
             State::Step => self.handle_common_input(delta_time),
@@ -164,8 +168,10 @@ async fn main() -> Result<()> {
     flexi_logger::Logger::try_with_env_or_str("warn")?.start()?;
     log::info!("Hello, World!");
     let mut editor = Editor::default();
+    editor.init();
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
+
     let mut part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into());
     let stage = part
         .build_stage()
@@ -173,7 +179,7 @@ async fn main() -> Result<()> {
         .with_radius(80., 80.)
         .with_circle_stage(&mut part);
     editor.explosion_stages.push(stage.clone());
-    world.add_gizmos(Rc::new(stage.clone()));
+    /* world.add_gizmos(Rc::new(stage.clone()));
     let stage = part
         .build_stage()
         .with_angle(PI * 0.65, PI * 1.35)
@@ -186,28 +192,45 @@ async fn main() -> Result<()> {
     editor.explosion_stages.push(stage.clone());
     world.add_gizmos(Rc::new(stage.clone()));
     let part = part.build();
-    /* 64.0,
-    YELLOW, */
+    world.add_particle(Box::new(part)); */
 
-    world.add_particle(Box::new(part));
     let mut game = GameData {
         world: Rc::from(RefCell::new(world)),
         gizmos: true,
         ..GameData::default()
     };
 
+    let mut explosion: Option<Explosion> = None;
+
     while !game.state.is_exit() {
-        game.update(get_frame_time());
+        let mut delta_time = get_frame_time();
+        let old_time = game.time;
         egui_macroquad::ui(|egui_ctx| {
-            if game.state.is_editor() {
-                editor.update_egui(egui_ctx);
+            if game.is_editor() {
+                editor.time = old_time;
+                editor.update_egui(egui_ctx, delta_time);
                 game.gizmos = editor.show_gizmos;
                 if let Some(new_state) = editor.state.take() {
                     game.state = new_state;
                 }
+                let new_time = editor.time;
+                delta_time = new_time - old_time;
+                if let Some(editor) = editor.build_explosion(cowshmup::CenterPt::new(100.0, 200.0))
+                {
+                    explosion = Some(editor)
+                }
             }
         });
+        game.update(delta_time);
         game.draw();
+        if let Some(mut exp) = explosion {
+            exp.update(delta_time);
+            exp.draw();
+            explosion = Some(exp)
+        }
+        if game.is_editor() {
+            editor.draw_gizmos();
+        }
         game.draw_gizmos();
         egui_macroquad::draw();
         next_frame().await;
