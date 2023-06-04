@@ -1,6 +1,6 @@
 use cowshmup::{
     drawable::Drawable,
-    particle::{Explosion, ExplosionBuilder, ExplosionStage},
+    particle::{Explosion, ExplosionStage},
     CenterPt,
 };
 use egui_macroquad::egui::{self, Ui};

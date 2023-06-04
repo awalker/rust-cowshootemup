@@ -1,7 +1,7 @@
 /// Cow Shoot 'em up in Rust
 mod editor;
 mod state;
-use std::{cell::RefCell, f32::consts::PI, matches, rc::Rc};
+use std::{cell::RefCell, matches, rc::Rc};
 
 use anyhow::Result;
 use cowshmup::{

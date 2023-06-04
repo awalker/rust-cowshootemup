@@ -8,7 +8,7 @@ use crate::{
 };
 pub use circle::CircleParticle;
 use egui_macroquad::egui::{
-    color_picker::{self, color_picker_color32, Alpha},
+    color_picker::{self, Alpha},
     Grid, Rgba, Ui,
 };
 use macroquad::{
