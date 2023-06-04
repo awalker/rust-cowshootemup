@@ -1,4 +1,5 @@
-use egui_macroquad::egui::{Label, Slider, Ui};
+use egui_macroquad::egui::{Slider, Ui};
+use macroquad::rand::{gen_range, RandomRange};
 use rand::{distributions::Standard, prelude::*};
 use std::ops::{Add, Div, Mul, RangeInclusive, Rem, Sub};
 #[derive(Debug, Default, Clone, Copy, serde::Serialize, serde::Deserialize)]
@@ -28,6 +29,7 @@ where
         + PartialOrd
         + Clone
         + std::fmt::Display
+        + RandomRange
         + egui_macroquad::egui::emath::Numeric,
     Standard: Distribution<T>,
 {
@@ -35,9 +37,7 @@ where
         if self.min == self.max {
             return self.min;
         }
-        let dist = self.max - self.min;
-        let r = rand::random::<T>() * dist;
-        self.min + r
+        gen_range(self.min, self.max)
     }
 
     pub fn append(mut self, v: T) -> Self {
@@ -62,11 +62,7 @@ where
         ui.columns(2, |cols| {
             let (min, max) = range.into_inner();
 
-            if min == self.max {
-                cols[0].add(Label::new(format!("{} move max", self.min)));
-            } else {
-                cols[0].add(Slider::new(&mut self.min, min..=self.max).max_decimals(2));
-            }
+            cols[0].add(Slider::new(&mut self.min, min..=self.max).max_decimals(2));
             cols[1].add(Slider::new(&mut self.max, self.min..=max).max_decimals(2));
         })
     }
@@ -81,6 +77,7 @@ where
         + Rem<Output = T>
         + Add<Output = T>
         + Clone
+        + RandomRange
         + egui_macroquad::egui::emath::Numeric,
     Standard: Distribution<T>,
 {
@@ -88,19 +85,13 @@ where
         if self.min == self.max {
             return self.min;
         }
-        let dist = self.max - self.min;
-        let r = rand::random::<T>() % dist;
-        self.min + r
+        gen_range(self.min, self.max)
     }
 
     pub fn editor_int_ui(&mut self, ui: &mut Ui, range: RangeInclusive<T>) {
         ui.columns(2, |cols| {
             let (min, max) = range.into_inner();
-            if min == self.max {
-                cols[0].add(Label::new("move max"));
-            } else {
-                cols[0].add(Slider::new(&mut self.min, min..=self.max).max_decimals(0));
-            }
+            cols[0].add(Slider::new(&mut self.min, min..=self.max).max_decimals(0));
             cols[1].add(Slider::new(&mut self.max, self.min..=max).max_decimals(0));
         })
     }
