@@ -3,7 +3,7 @@ use cowshmup::{
     particle::{Explosion, ExplosionStage},
     CenterPt,
 };
-use egui_macroquad::egui::{self, Ui};
+use egui_macroquad::egui::{self, Key, Ui};
 use macroquad::{prelude::*, rand};
 use serde::{Deserialize, Serialize};
 
@@ -32,9 +32,10 @@ impl Editor {
 
     pub fn update_egui(&mut self, egui_ctx: &egui::Context, delta_time: f32) {
         // Maybe update time
+        self.seed_rand();
         self.time += delta_time;
-        if let Some(seed) = self.seed {
-            rand::srand(seed);
+        if egui_ctx.input(|i| i.key_pressed(Key::Escape)) {
+            self.state = Some(State::Exit);
         }
         egui::TopBottomPanel::top("State Menu").show(egui_ctx, |ui| {
             self.state_window_ui(ui);
@@ -47,6 +48,12 @@ impl Editor {
                 });
             }
         });
+    }
+
+    pub fn seed_rand(&self) {
+        if let Some(seed) = self.seed {
+            rand::srand(seed);
+        }
     }
 
     fn state_window_ui(&mut self, ui: &mut Ui) {
