@@ -4,6 +4,7 @@ use crate::{
     drawable::{Drawable, Gizmo},
     minmax::MinMax,
     updateable::Updateable,
+    utils::GameColor,
     CenterPt, Velocity,
 };
 pub use circle::CircleParticle;
@@ -12,7 +13,7 @@ use egui_macroquad::egui::{
     Grid, Rgba, Ui,
 };
 use macroquad::{
-    prelude::{Color, BLUE, GREEN, ORANGE, YELLOW},
+    prelude::{BLUE, GREEN, ORANGE, YELLOW},
     shapes::{draw_circle_lines, draw_line},
 };
 use std::f32::consts::PI;
@@ -42,8 +43,7 @@ pub struct ExplosionStage {
     /// How large is the particle (circle/spark)
     radius: MinMax<f32>,
     delay: MinMax<f32>,
-    #[serde(with = "crate::utils::color_format")]
-    color: Color,
+    color: GameColor,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -105,7 +105,7 @@ impl ExplosionStage {
         self
     }
 
-    pub fn with_color(mut self, color: Color) -> Self {
+    pub fn with_color(mut self, color: GameColor) -> Self {
         self.color = color;
         self
     }
@@ -124,7 +124,7 @@ impl ExplosionStage {
             let cp = CircleParticle::new(
                 (cx + ax * r, cy + ay * r).into(),
                 self.radius.rand(),
-                self.color,
+                self.color.into(),
             )
             .with_ttl(t)
             .with_delay(d)
@@ -170,14 +170,9 @@ impl ExplosionStage {
 
             ui.label("Color");
             dbg!(&self.color);
-            let mut srgba = Rgba::from_rgba_premultiplied(
-                self.color.r,
-                self.color.g,
-                self.color.b,
-                self.color.a,
-            );
+            let mut srgba = Rgba::from(self.color);
             if color_picker::color_edit_button_rgba(ui, &mut srgba, Alpha::OnlyBlend).changed() {
-                self.color = Color::new(srgba.r(), srgba.g(), srgba.b(), srgba.a());
+                self.color = srgba.into();
             }
             /* ui.horizontal(|ui| {
                 ui.label("Color");
@@ -231,7 +226,7 @@ impl Explosion {
                 circles_per_stage: MinMax::new(1, 1),
                 radius: MinMax::new(10., 10.),
                 angle: MinMax::new(0., PI * 2.),
-                color: YELLOW,
+                color: YELLOW.into(),
                 ..Default::default()
             },
             ..Default::default()
