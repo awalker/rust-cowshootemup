@@ -169,15 +169,15 @@ impl ExplosionStage {
             ui.end_row();
 
             ui.label("Color");
-            // FIXME: This is wrong
+            dbg!(&self.color);
             let mut srgba = Rgba::from_rgba_premultiplied(
                 self.color.r,
-                self.color.b,
                 self.color.g,
+                self.color.b,
                 self.color.a,
             );
             if color_picker::color_edit_button_rgba(ui, &mut srgba, Alpha::OnlyBlend).changed() {
-                // TODO: Color changed...
+                self.color = Color::new(srgba.r(), srgba.g(), srgba.b(), srgba.a());
             }
             /* ui.horizontal(|ui| {
                 ui.label("Color");
