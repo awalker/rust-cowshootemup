@@ -1,3 +1,4 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 /// Cow Shoot 'em up in Rust
 mod editor;
 mod state;
