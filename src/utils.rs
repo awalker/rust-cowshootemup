@@ -60,7 +60,7 @@ impl<'de> Deserialize<'de> for GameColor {
                     .map_while(|v| v.parse::<f32>().ok())
                     .collect();
                 if v.len() == 4 {
-                    return Ok(Self(Color::new(v[0], v[1], v[2], v[4])));
+                    return Ok(Self(Color::new(v[0], v[1], v[2], v[3])));
                 }
             }
         }
