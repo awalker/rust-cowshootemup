@@ -77,11 +77,10 @@ impl Editor {
     }
 
     pub fn build_explosion(&mut self, center: CenterPt) -> Option<Explosion> {
-        self.explosion_builder.at(center);
-        self.explosion_builder.clone().build()
+        self.explosion_builder.clone().build(center)
     }
 
-    pub fn draw_gizmos(&self) {
-        self.explosion_builder.draw_gizmos();
+    pub fn draw_gizmos_at(&self, center: CenterPt) {
+        self.explosion_builder.draw_gizmos_at(center);
     }
 }

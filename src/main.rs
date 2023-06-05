@@ -222,6 +222,8 @@ async fn main() -> Result<()> {
 
     let mut explosion: Option<Explosion> = None;
 
+    let editor_object_center = cowshmup::CenterPt::new(100., 200.);
+
     while !game.state.is_exit() {
         let mut delta_time = get_frame_time();
         let old_time = game.time;
@@ -235,8 +237,7 @@ async fn main() -> Result<()> {
                 }
                 let new_time = editor.time;
                 delta_time = new_time - old_time;
-                if let Some(editor) = editor.build_explosion(cowshmup::CenterPt::new(100.0, 200.0))
-                {
+                if let Some(editor) = editor.build_explosion(editor_object_center) {
                     explosion = Some(editor)
                 }
             }
@@ -249,7 +250,7 @@ async fn main() -> Result<()> {
             explosion = Some(exp)
         }
         if game.is_editor() {
-            editor.draw_gizmos();
+            editor.draw_gizmos_at(editor_object_center);
         }
         game.draw_gizmos();
         egui_macroquad::draw();

@@ -1,10 +1,6 @@
 mod circle;
 use crate::{
-    alive::IsAlive,
-    drawable::{Drawable, Gizmo},
-    minmax::MinMax,
-    updateable::Updateable,
-    utils::GameColor,
+    alive::IsAlive, drawable::Drawable, minmax::MinMax, updateable::Updateable, utils::GameColor,
     CenterPt, Velocity,
 };
 pub use circle::CircleParticle;
@@ -34,8 +30,8 @@ pub struct Explosion {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExplosionStage {
-    /// Maybe this is relative or should not be here...
-    center: CenterPt,
+    /// this is relative
+    // center: CenterPt,
     velocity: Velocity,
     stage_time: MinMax<f32>,
     circles_per_stage: MinMax<u8>,
@@ -52,7 +48,6 @@ pub struct ExplosionStage {
 impl Default for ExplosionStage {
     fn default() -> Self {
         Self {
-            center: Default::default(),
             velocity: Default::default(),
             stage_time: MinMax::new(1., 5.),
             circles_per_stage: MinMax::new(1, 1),
@@ -76,11 +71,6 @@ pub struct ExplosionBuilder {
 const TWO_PI: f32 = PI * 2.;
 
 impl ExplosionStage {
-    pub fn at(mut self, center: CenterPt) -> Self {
-        self.center = center;
-        self
-    }
-
     pub fn with_velocity(mut self, v: Velocity) -> Self {
         self.velocity = v;
         self
@@ -129,13 +119,13 @@ impl ExplosionStage {
         self
     }
 
-    pub fn generate_circle_particles(&self) -> Vec<CircleParticle> {
+    pub fn generate_circle_particles(&self, center: CenterPt) -> Vec<CircleParticle> {
         let desired_circles = self.circles_per_stage.rand_int();
         let mut circles = Vec::new();
         for _i in 0..desired_circles {
             let t = self.stage_time.rand();
             let d = self.delay.rand();
-            let (cx, cy) = self.center.into();
+            let (cx, cy) = center.into();
             let (vx, vy) = self.velocity.into();
             let (ax, ay) = self.angle.rand().sin_cos();
             let r = self.dist.rand();
@@ -204,13 +194,34 @@ impl ExplosionStage {
             ui.end_row();
         });
     }
+
+    fn draw_gizmos_at(&self, center: CenterPt) {
+        let r = self.radius.max;
+        let ang = self.angle.min;
+        let (arc1x, arc1y) = ang.sin_cos();
+        let (arc2x, arc2y) = self.angle.max.sin_cos();
+        let (cx, cy) = center.into();
+        let color = ORANGE;
+        draw_circle_lines(cx, cy, self.dist.min, 1., color);
+        draw_circle_lines(cx, cy, self.dist.max, 1., color);
+        let color = BLUE;
+        let r_range = (r - self.radius.min).max(1.);
+        draw_circle_lines(cx, cy, r - r_range / 2., r_range, color);
+        let color = GREEN;
+        draw_line(cx, cy, cx + arc1x * r, cy + arc1y * r, 1., color);
+        draw_line(cx, cy, cx + arc2x * r, cy + arc2y * r, 1., color);
+        draw_line(
+            cx + arc1x * r,
+            cy + arc1y * r,
+            cx + arc2x * r,
+            cy + arc2y * r,
+            1.,
+            color,
+        );
+    }
 }
 
 impl ExplosionBuilder {
-    pub fn at(&mut self, center: CenterPt) {
-        self.current.center = center;
-    }
-
     pub fn build_stage(&self) -> ExplosionStage {
         self.current.clone()
     }
@@ -231,7 +242,7 @@ impl ExplosionBuilder {
         self
     }
 
-    pub fn build(self) -> Option<Explosion> {
+    pub fn build(self, center: CenterPt) -> Option<Explosion> {
         if self.stages.is_empty() {
             None
         } else {
@@ -239,7 +250,7 @@ impl ExplosionBuilder {
                 circles: self
                     .stages
                     .iter()
-                    .flat_map(|f| f.generate_circle_particles())
+                    .flat_map(|f| f.generate_circle_particles(center))
                     .collect(),
                 // center: self.center,
                 // ..Default::default()
@@ -280,16 +291,15 @@ impl ExplosionBuilder {
         });
     }
 
-    pub fn draw_gizmos(&self) {
-        self.stages.iter().for_each(|es| es.draw_gizmos())
+    pub fn draw_gizmos_at(&self, center: CenterPt) {
+        self.stages.iter().for_each(|es| es.draw_gizmos_at(center))
     }
 }
 
 impl Explosion {
-    pub fn begin(center: CenterPt) -> ExplosionBuilder {
+    pub fn begin() -> ExplosionBuilder {
         ExplosionBuilder {
             current: ExplosionStage {
-                center,
                 circles_per_stage: MinMax::new(1, 1),
                 radius: MinMax::new(10., 10.),
                 angle: MinMax::new(0., PI * 2.),
@@ -306,42 +316,6 @@ impl Drawable for Explosion {
         self.circles.iter().for_each(|c| c.draw())
     }
 }
-
-impl Drawable for ExplosionStage {
-    fn draw(&self) {}
-    fn draw_gizmos(&self) {
-        let r = self.radius.max;
-        let ang = self.angle.min;
-        let (arc1x, arc1y) = ang.sin_cos();
-        let (arc2x, arc2y) = self.angle.max.sin_cos();
-        let (cx, cy) = self.center.into();
-        let color = ORANGE;
-        draw_circle_lines(cx, cy, self.dist.min, 1., color);
-        draw_circle_lines(cx, cy, self.dist.max, 1., color);
-        let color = BLUE;
-        let r_range = (r - self.radius.min).max(1.);
-        draw_circle_lines(cx, cy, r - r_range / 2., r_range, color);
-        let color = GREEN;
-        draw_line(cx, cy, cx + arc1x * r, cy + arc1y * r, 1., color);
-        draw_line(cx, cy, cx + arc2x * r, cy + arc2y * r, 1., color);
-        draw_line(
-            cx + arc1x * r,
-            cy + arc1y * r,
-            cx + arc2x * r,
-            cy + arc2y * r,
-            1.,
-            color,
-        );
-    }
-}
-
-impl IsAlive for ExplosionStage {
-    fn is_alive(&self) -> bool {
-        true
-    }
-}
-
-impl Gizmo for ExplosionStage {}
 
 impl Updateable for Explosion {
     fn update(&mut self, delta_time: f32) {
