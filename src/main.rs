@@ -2,9 +2,15 @@
 /// Cow Shoot 'em up in Rust
 mod editor;
 mod state;
-use std::{cell::RefCell, matches, rc::Rc};
+use std::{
+    cell::RefCell,
+    fs::File,
+    io::{BufReader, BufWriter},
+    matches,
+    rc::Rc,
+};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use cowshmup::{
     drawable::{Drawable, Graphic},
     particle::Explosion,
@@ -164,22 +170,35 @@ impl Drawable for GameData {
     }
 }
 
+fn load_editor() -> anyhow::Result<Editor> {
+    let rdr =
+        BufReader::new(File::open("editor.yaml").with_context(|| "Could not open editor.yaml")?);
+    serde_yaml::from_reader::<_, Editor>(rdr).with_context(|| "could not parse editor.yaml")
+}
+
 #[macroquad::main("OMG Cows")]
 async fn main() -> Result<()> {
     flexi_logger::Logger::try_with_env_or_str("warn")?.start()?;
     log::info!("Hello, World!");
-    let mut editor = Editor::default();
+    let mut editor = match load_editor() {
+        Err(err) => {
+            // TODO: Result error
+            log::warn!("Unable to load editor: {:#?}", err);
+            Editor::default()
+        }
+        Ok(v) => v,
+    };
     editor.init();
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
 
-    let mut part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into());
-    let stage = part
-        .build_stage()
-        .with_age(5., 5.)
-        .with_radius(80., 80.)
-        .with_circle_stage(&mut part);
-    editor.explosion_stages.push(stage.clone());
+    // let mut part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into());
+    // let stage = part
+    // .build_stage()
+    // .with_age(5., 5.)
+    // .with_radius(80., 80.)
+    // .with_circle_stage(&mut part);
+    // editor.explosion_stages.push(stage.clone());
     /* world.add_gizmos(Rc::new(stage.clone()));
     let stage = part
         .build_stage()
@@ -236,5 +255,8 @@ async fn main() -> Result<()> {
         egui_macroquad::draw();
         next_frame().await;
     }
+    // TODO: Should probably support manually loading and saving, instead of always auto-saving...
+    // Or maybe both...
+    serde_yaml::to_writer(BufWriter::new(File::create("editor.yaml")?), &editor)?;
     Ok(())
 }

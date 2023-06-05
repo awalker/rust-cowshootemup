@@ -1,6 +1,5 @@
 use cowshmup::{
-    drawable::Drawable,
-    particle::{Explosion, ExplosionStage},
+    particle::{Explosion, ExplosionBuilder},
     CenterPt,
 };
 use egui_macroquad::egui::{self, Key, Ui};
@@ -14,12 +13,14 @@ pub struct Editor {
     #[serde(skip)]
     pub state: Option<State>,
     pub show_gizmos: bool,
+    #[serde(skip)]
     pub time: f32,
     /// Things we edit may use randomness, we need to reset that every editor frame
     seed: Option<u64>,
 
     // --- things we edit below here --
-    pub explosion_stages: Vec<ExplosionStage>,
+    // pub explosion_stages: Vec<ExplosionStage>,
+    pub explosion_builder: ExplosionBuilder,
 }
 
 impl Editor {
@@ -41,23 +42,7 @@ impl Editor {
             self.state_window_ui(ui);
         });
         egui::SidePanel::right("Explosion").show(egui_ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading("Explosion");
-                if ui.small_button("Add Stage").clicked() {
-                    if let Some(last) = self.explosion_stages.last() {
-                        self.explosion_stages.push(last.clone());
-                    } else {
-                        self.explosion_stages.push(ExplosionStage::default());
-                    }
-                }
-            });
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                for (i, exp) in self.explosion_stages.iter_mut().enumerate() {
-                    ui.group(|ui| {
-                        exp.editor_ui(ui, i);
-                    });
-                }
-            });
+            self.explosion_builder.editor_ui(ui);
         });
     }
 
@@ -91,16 +76,12 @@ impl Editor {
         });
     }
 
-    pub fn build_explosion(&self, center: CenterPt) -> Option<Explosion> {
-        if self.explosion_stages.is_empty() {
-            None
-        } else {
-            let builder = Explosion::begin(center).with_stages(self.explosion_stages.clone());
-            Some(builder.build())
-        }
+    pub fn build_explosion(&mut self, center: CenterPt) -> Option<Explosion> {
+        self.explosion_builder.at(center);
+        self.explosion_builder.clone().build()
     }
 
     pub fn draw_gizmos(&self) {
-        self.explosion_stages.iter().for_each(|es| es.draw_gizmos())
+        self.explosion_builder.draw_gizmos();
     }
 }

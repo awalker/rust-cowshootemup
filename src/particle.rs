@@ -9,6 +9,7 @@ use crate::{
 };
 pub use circle::CircleParticle;
 use egui_macroquad::egui::{
+    self,
     color_picker::{self, Alpha},
     Grid, Rgba, Ui,
 };
@@ -16,6 +17,7 @@ use macroquad::{
     prelude::{BLUE, GREEN, ORANGE, YELLOW},
     shapes::{draw_circle_lines, draw_line},
 };
+use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 pub trait Particle: Drawable + Updateable + IsAlive {
@@ -30,8 +32,9 @@ pub struct Explosion {
     // lines, sparks, or whatever
 }
 
-#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExplosionStage {
+    /// Maybe this is relative or should not be here...
     center: CenterPt,
     velocity: Velocity,
     stage_time: MinMax<f32>,
@@ -46,7 +49,23 @@ pub struct ExplosionStage {
     color: GameColor,
 }
 
-#[derive(Debug, Default, Clone)]
+impl Default for ExplosionStage {
+    fn default() -> Self {
+        Self {
+            center: Default::default(),
+            velocity: Default::default(),
+            stage_time: MinMax::new(1., 5.),
+            circles_per_stage: MinMax::new(1, 1),
+            angle: MinMax::new(0., TWO_PI),
+            dist: Default::default(),
+            radius: MinMax::new(1., 3.),
+            delay: MinMax::new(0., 0.5),
+            color: YELLOW.into(),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ExplosionBuilder {
     current: ExplosionStage,
     /// We currently pregenerating all the circles, maybe we should store the stages and generate
@@ -174,7 +193,6 @@ impl ExplosionStage {
             ui.end_row();
 
             ui.label("Color");
-            dbg!(&self.color);
             let mut srgba = Rgba::from(self.color);
             if color_picker::color_edit_button_rgba(ui, &mut srgba, Alpha::OnlyBlend).changed() {
                 self.color = srgba.into();
@@ -189,6 +207,10 @@ impl ExplosionStage {
 }
 
 impl ExplosionBuilder {
+    pub fn at(&mut self, center: CenterPt) {
+        self.current.center = center;
+    }
+
     pub fn build_stage(&self) -> ExplosionStage {
         self.current.clone()
     }
@@ -209,17 +231,57 @@ impl ExplosionBuilder {
         self
     }
 
-    pub fn build(self) -> Explosion {
-        assert!(!self.stages.is_empty());
-        Explosion {
-            circles: self
-                .stages
-                .iter()
-                .flat_map(|f| f.generate_circle_particles())
-                .collect(),
-            // center: self.center,
-            // ..Default::default()
+    pub fn build(self) -> Option<Explosion> {
+        if self.stages.is_empty() {
+            None
+        } else {
+            Some(Explosion {
+                circles: self
+                    .stages
+                    .iter()
+                    .flat_map(|f| f.generate_circle_particles())
+                    .collect(),
+                // center: self.center,
+                // ..Default::default()
+            })
         }
+    }
+
+    pub fn editor_ui(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.heading("Explosion");
+            if ui.small_button("Add Stage").clicked() {
+                if let Some(last) = self.stages.last() {
+                    self.stages.push(last.clone());
+                } else {
+                    self.stages.push(self.build_stage());
+                }
+            }
+        });
+
+        let mut to_remove = Vec::new();
+
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for (i, exp) in self.stages.iter_mut().enumerate() {
+                ui.horizontal(|ui| {
+                    ui.heading(format!("Explosion circle stage #{}", i + 1));
+                    if ui.small_button("").clicked() {
+                        to_remove.push(i);
+                    }
+                });
+                ui.group(|ui| {
+                    exp.editor_ui(ui, i);
+                });
+            }
+        });
+
+        to_remove.into_iter().for_each(|i| {
+            self.stages.remove(i);
+        });
+    }
+
+    pub fn draw_gizmos(&self) {
+        self.stages.iter().for_each(|es| es.draw_gizmos())
     }
 }
 
