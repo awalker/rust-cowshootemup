@@ -1,4 +1,6 @@
 use std::cell::RefCell;
+pub const GAME_WIDTH: f32 = 128.0;
+pub const GAME_HEIGHT: f32 = 128.0;
 
 // use serde::{Deserialize, Serialize};
 

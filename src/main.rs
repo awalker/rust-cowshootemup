@@ -3,11 +3,9 @@
 mod editor;
 mod state;
 use std::{
-    cell::RefCell,
     fs::File,
     io::{BufReader, BufWriter},
     matches,
-    rc::Rc,
 };
 
 use anyhow::{Context, Result};
@@ -15,18 +13,15 @@ use cowshmup::{
     drawable::{Drawable, Graphic},
     particle::Explosion,
     updateable::Updateable,
-    world::{RcWorld, World},
+    world::{World, GAME_HEIGHT, GAME_WIDTH},
 };
 use editor::Editor;
 use macroquad::{input, prelude::*};
 use state::State;
 
-const GAME_WIDTH: f32 = 128.0;
-const GAME_HEIGHT: f32 = 128.0;
-
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Debug)]
 pub struct GameData {
-    world: RcWorld,
+    world: World,
     fps: i32,
     time: f32,
     state: State,
@@ -197,7 +192,7 @@ async fn main() -> Result<()> {
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
 
     let mut game = GameData {
-        world: Rc::from(RefCell::new(world)),
+        world,
         gizmos: true,
         ..GameData::default()
     };
