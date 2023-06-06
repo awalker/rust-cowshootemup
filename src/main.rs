@@ -21,6 +21,9 @@ use editor::Editor;
 use macroquad::{input, prelude::*};
 use state::State;
 
+const GAME_WIDTH: f32 = 128.0;
+const GAME_HEIGHT: f32 = 128.0;
+
 #[derive(Default, Clone, Debug)]
 pub struct GameData {
     world: RcWorld,
@@ -80,25 +83,26 @@ impl GameData {
 
         self.world.draw();
 
-        let mut x = 20.0 * self.time;
-        if x > 60.0 {
-            x = 60.0
-        }
-        draw_rectangle(screen_width() / 2.0 - x, 100.0, 120.0, 60.0, GREEN);
-        draw_text(&format!("HELLO {}", self.fps), 20.0, 20.0, 20.0, DARKGRAY);
-        draw_text(&format!("TIME {}", self.time), 20.0, 40.0, 20.0, DARKGRAY);
+        // FIXME: Debug info in egui instead?
+        let font_size = 10.;
+        let y = font_size;
+        draw_text(&format!("HELLO {}", self.fps), 0.0, y, font_size, DARKGRAY);
+        let y = y + font_size;
+        draw_text(&format!("TIME {}", self.time), 0.0, y, font_size, DARKGRAY);
+        let y = y + font_size;
         draw_text(
             &format!("Gizmos {}", self.gizmos),
-            20.0,
-            60.0,
-            20.0,
+            0.0,
+            y,
+            font_size,
             DARKGRAY,
         );
+        let y = y + font_size;
         draw_text(
             &format!("State {:?}", self.state),
-            20.0,
-            80.0,
-            20.0,
+            0.0,
+            y,
+            font_size,
             DARKGRAY,
         );
     }
@@ -192,28 +196,6 @@ async fn main() -> Result<()> {
     let mut world = World::default();
     world.add_graphic(Graphic::line(40.0, 40.0, 100.0, 200.0, BLUE));
 
-    // let mut part = Explosion::begin((screen_width() / 2.0, screen_height() / 2.0).into());
-    // let stage = part
-    // .build_stage()
-    // .with_age(5., 5.)
-    // .with_radius(80., 80.)
-    // .with_circle_stage(&mut part);
-    // editor.explosion_stages.push(stage.clone());
-    /* world.add_gizmos(Rc::new(stage.clone()));
-    let stage = part
-        .build_stage()
-        .with_angle(PI * 0.65, PI * 1.35)
-        .with_delay(2., 4.)
-        .with_radius(32., 64.)
-        .with_count(3, 4)
-        .with_dist(10., 25.)
-        .with_color(BROWN)
-        .with_circle_stage(&mut part);
-    editor.explosion_stages.push(stage.clone());
-    world.add_gizmos(Rc::new(stage.clone()));
-    let part = part.build();
-    world.add_particle(Box::new(part)); */
-
     let mut game = GameData {
         world: Rc::from(RefCell::new(world)),
         gizmos: true,
@@ -222,13 +204,24 @@ async fn main() -> Result<()> {
 
     let mut explosion: Option<Explosion> = None;
 
-    let editor_object_center = cowshmup::CenterPt::new(100., 200.);
+    let editor_object_center = cowshmup::CenterPt::new(GAME_WIDTH / 2., GAME_HEIGHT / 2.);
+    let render_target = render_target(GAME_WIDTH as u32, GAME_HEIGHT as u32);
+    render_target.texture.set_filter(FilterMode::Nearest);
+    let mut camera = Camera2D::from_display_rect(Rect::new(0., 0., GAME_WIDTH, GAME_HEIGHT));
+    camera.render_target = Some(render_target);
+    camera.zoom.y *= -1.;
+    let mut zoom = 3.;
 
     while !game.state.is_exit() {
+        let mut game_start_x = 0.;
+        let mut game_start_y = 0.;
+        let mut game_canvas_w = screen_width();
+        let mut game_canvas_h = screen_height();
         let mut delta_time = get_frame_time();
         let old_time = game.time;
         egui_macroquad::ui(|egui_ctx| {
             if game.is_editor() {
+                zoom = 3.;
                 editor.time = old_time;
                 editor.update_egui(egui_ctx, delta_time);
                 game.gizmos = editor.show_gizmos;
@@ -240,9 +233,18 @@ async fn main() -> Result<()> {
                 if let Some(editor) = editor.build_explosion(editor_object_center) {
                     explosion = Some(editor)
                 }
+                game_start_y += 20.;
+                game_canvas_h -= game_start_y;
+                game_canvas_w -= 350.0;
             }
         });
+        zoom = (game_canvas_w / GAME_WIDTH).floor();
+        zoom = zoom.min((game_canvas_h / GAME_HEIGHT).floor());
+        game_start_x += (game_canvas_w - (GAME_WIDTH * zoom)) / 2.;
+        game_start_y += (game_canvas_h - (GAME_HEIGHT * zoom)) / 2.;
         game.update(delta_time);
+        push_camera_state();
+        set_camera(&camera);
         game.draw();
         if let Some(mut exp) = explosion {
             exp.update(delta_time);
@@ -253,6 +255,17 @@ async fn main() -> Result<()> {
             editor.draw_gizmos_at(editor_object_center);
         }
         game.draw_gizmos();
+        pop_camera_state();
+        draw_texture_ex(
+            render_target.texture,
+            game_start_x,
+            game_start_y,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(Vec2::new(GAME_WIDTH * zoom, GAME_HEIGHT * zoom)),
+                ..Default::default()
+            },
+        );
         egui_macroquad::draw();
         next_frame().await;
     }
