@@ -1,4 +1,9 @@
-use egui_macroquad::egui;
+use egui_macroquad::egui::{
+    self,
+    color_picker::{self, Alpha},
+    epaint::{Hsva, HsvaGamma},
+    Rgba, Ui,
+};
 use macroquad::prelude::Color;
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 
@@ -8,6 +13,35 @@ pub struct GameColor(Color);
 impl GameColor {
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self(Color::new(r, g, b, a))
+    }
+
+    pub fn brighten(self, amt: f32) -> Self {
+        let hsva: HsvaGamma = self.into();
+        let hsva = HsvaGamma {
+            v: hsva.v + amt,
+            ..hsva
+        };
+        hsva.into()
+    }
+
+    pub fn darken(self, amt: f32) -> Self {
+        self.brighten(-amt)
+    }
+
+    pub fn editor_ui(mut self, ui: &mut Ui) -> Self {
+        let mut srgba = Rgba::from(self);
+        ui.horizontal(|ui| {
+            if color_picker::color_edit_button_rgba(ui, &mut srgba, Alpha::Opaque).changed() {
+                self = srgba.into();
+            }
+            if ui.small_button("+").clicked() {
+                self = self.brighten(0.1)
+            }
+            if ui.small_button("-").clicked() {
+                self = self.darken(0.1)
+            }
+        });
+        self
     }
 }
 
@@ -34,6 +68,38 @@ impl From<GameColor> for egui::Rgba {
     fn from(value: GameColor) -> Self {
         let c = value.0;
         egui::Rgba::from_rgba_premultiplied(c.r, c.g, c.b, c.a)
+    }
+}
+
+impl From<HsvaGamma> for GameColor {
+    fn from(value: HsvaGamma) -> Self {
+        let value: egui::Rgba = value.into();
+        let color = Color::new(value.r(), value.g(), value.b(), value.a());
+        Self(color)
+    }
+}
+
+impl From<GameColor> for HsvaGamma {
+    fn from(value: GameColor) -> Self {
+        let c = value.0;
+        let rgba = egui::Rgba::from_rgba_premultiplied(c.r, c.g, c.b, c.a);
+        rgba.into()
+    }
+}
+
+impl From<Hsva> for GameColor {
+    fn from(value: Hsva) -> Self {
+        let value: egui::Rgba = value.into();
+        let color = Color::new(value.r(), value.g(), value.b(), value.a());
+        Self(color)
+    }
+}
+
+impl From<GameColor> for Hsva {
+    fn from(value: GameColor) -> Self {
+        let c = value.0;
+        let rgba = egui::Rgba::from_rgba_premultiplied(c.r, c.g, c.b, c.a);
+        rgba.into()
     }
 }
 

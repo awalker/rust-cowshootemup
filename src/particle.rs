@@ -1,14 +1,10 @@
 mod circle;
 use crate::{
     alive::IsAlive, drawable::Drawable, minmax::MinMax, updateable::Updateable, utils::GameColor,
-    CenterPt, Velocity,
+    CenterPt, Size, Velocity,
 };
 pub use circle::CircleParticle;
-use egui_macroquad::egui::{
-    self,
-    color_picker::{self, Alpha},
-    Grid, Rgba, Ui,
-};
+use egui_macroquad::egui::{self, Grid, Ui};
 use macroquad::{
     prelude::{BLUE, GREEN, ORANGE, YELLOW},
     shapes::{draw_circle_lines, draw_line},
@@ -62,7 +58,6 @@ impl Default for ExplosionStage {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ExplosionBuilder {
-    current: ExplosionStage,
     /// We currently pregenerating all the circles, maybe we should store the stages and generate
     /// on build
     stages: Vec<ExplosionStage>,
@@ -143,13 +138,6 @@ impl ExplosionStage {
         circles
     }
 
-    pub fn with_circle_stage(self, b: &mut ExplosionBuilder) -> Self {
-        b.current = self.clone();
-        assert!(self.stage_time.max != 0., "Max Stage time can not be zero!");
-        b.stages.push(self.clone());
-        self
-    }
-
     pub fn editor_ui(&mut self, ui: &mut Ui, id: usize) {
         ui.horizontal(|ui| {
             ui.heading(format!("Explosion circle stage #{}", id + 1));
@@ -183,10 +171,7 @@ impl ExplosionStage {
             ui.end_row();
 
             ui.label("Color");
-            let mut srgba = Rgba::from(self.color);
-            if color_picker::color_edit_button_rgba(ui, &mut srgba, Alpha::OnlyBlend).changed() {
-                self.color = srgba.into();
-            }
+            self.color = self.color.editor_ui(ui);
             /* ui.horizontal(|ui| {
                 ui.label("Color");
                 ui.label("cell");
@@ -222,10 +207,6 @@ impl ExplosionStage {
 }
 
 impl ExplosionBuilder {
-    pub fn build_stage(&self) -> ExplosionStage {
-        self.current.clone()
-    }
-
     pub fn with_stages(mut self, stages: Vec<ExplosionStage>) -> Self {
         self.stages = stages;
         self
@@ -233,7 +214,6 @@ impl ExplosionBuilder {
 
     /// Add a stage of the explosion
     pub fn with_circle_stage(mut self, stage: ExplosionStage) -> Self {
-        self.current = stage.clone();
         assert!(
             stage.stage_time.max != 0.,
             "Max Stage time can not be zero!"
@@ -265,7 +245,7 @@ impl ExplosionBuilder {
                 if let Some(last) = self.stages.last() {
                     self.stages.push(last.clone());
                 } else {
-                    self.stages.push(self.build_stage());
+                    self.stages.push(ExplosionStage::default());
                 }
             }
         });
@@ -292,20 +272,19 @@ impl ExplosionBuilder {
     }
 
     pub fn draw_gizmos_at(&self, center: CenterPt) {
-        self.stages.iter().for_each(|es| es.draw_gizmos_at(center))
+        self.stages.iter().for_each(|es| {
+            let dist = es.dist.avg();
+            let angle = es.angle.avg();
+            let (x, y) = angle.sin_cos();
+            let offset = Size::new(x * dist, y * dist);
+            es.draw_gizmos_at(center + offset)
+        })
     }
 }
 
 impl Explosion {
     pub fn begin() -> ExplosionBuilder {
         ExplosionBuilder {
-            current: ExplosionStage {
-                circles_per_stage: MinMax::new(1, 1),
-                radius: MinMax::new(10., 10.),
-                angle: MinMax::new(0., PI * 2.),
-                color: YELLOW.into(),
-                ..Default::default()
-            },
             ..Default::default()
         }
     }
