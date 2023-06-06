@@ -80,6 +80,14 @@ impl Add<Velocity> for CenterPt {
     }
 }
 
+impl Add<Size> for CenterPt {
+    type Output = CenterPt;
+
+    fn add(self, rhs: Size) -> Self::Output {
+        CenterPt(self.0 + rhs.0, self.1 + rhs.1)
+    }
+}
+
 impl_vec2!(CenterPt);
 impl_vec2!(TopLeftPt);
 impl_vec2!(BottomRightPt);
