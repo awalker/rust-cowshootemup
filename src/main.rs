@@ -208,10 +208,7 @@ async fn main() -> Result<()> {
     let mut zoom = 3.;
 
     while !game.state.is_exit() {
-        let mut game_start_x = 0.;
-        let mut game_start_y = 0.;
-        let mut game_canvas_w = screen_width();
-        let mut game_canvas_h = screen_height();
+        let mut game_canvas = Rect::new(0., 0., screen_width(), screen_height());
         let mut delta_time = get_frame_time();
         let old_time = game.time;
         egui_macroquad::ui(|egui_ctx| {
@@ -228,15 +225,15 @@ async fn main() -> Result<()> {
                 if let Some(editor) = editor.build_explosion(editor_object_center) {
                     explosion = Some(editor)
                 }
-                game_start_y += 20.;
-                game_canvas_h -= game_start_y;
-                game_canvas_w -= 350.0;
+                game_canvas.y = 20.;
+                game_canvas.h -= game_canvas.y;
+                game_canvas.w -= 350.0;
             }
         });
-        zoom = (game_canvas_w / GAME_WIDTH).floor();
-        zoom = zoom.min((game_canvas_h / GAME_HEIGHT).floor());
-        game_start_x += (game_canvas_w - (GAME_WIDTH * zoom)) / 2.;
-        game_start_y += (game_canvas_h - (GAME_HEIGHT * zoom)) / 2.;
+        zoom = (game_canvas.w / GAME_WIDTH).floor();
+        zoom = zoom.min((game_canvas.h / GAME_HEIGHT).floor());
+        game_canvas.w += (game_canvas.w - (GAME_WIDTH * zoom)) / 2.;
+        game_canvas.h += (game_canvas.h - (GAME_HEIGHT * zoom)) / 2.;
         game.update(delta_time);
         push_camera_state();
         set_camera(&camera);
@@ -253,8 +250,8 @@ async fn main() -> Result<()> {
         pop_camera_state();
         draw_texture_ex(
             render_target.texture,
-            game_start_x,
-            game_start_y,
+            game_canvas.x,
+            game_canvas.y,
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(GAME_WIDTH * zoom, GAME_HEIGHT * zoom)),
