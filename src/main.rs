@@ -205,7 +205,7 @@ async fn main() -> Result<()> {
     let mut camera = Camera2D::from_display_rect(Rect::new(0., 0., GAME_WIDTH, GAME_HEIGHT));
     camera.render_target = Some(render_target);
     camera.zoom.y *= -1.;
-    let mut zoom = 3.;
+    let mut zoom;
 
     while !game.state.is_exit() {
         let mut game_canvas = Rect::new(0., 0., screen_width(), screen_height());
@@ -213,7 +213,6 @@ async fn main() -> Result<()> {
         let old_time = game.time;
         egui_macroquad::ui(|egui_ctx| {
             if game.is_editor() {
-                zoom = 3.;
                 editor.time = old_time;
                 editor.update_egui(egui_ctx, delta_time);
                 game.gizmos = editor.show_gizmos;
@@ -225,15 +224,17 @@ async fn main() -> Result<()> {
                 if let Some(editor) = editor.build_explosion(editor_object_center) {
                     explosion = Some(editor)
                 }
-                game_canvas.y = 20.;
+                let avail = egui_ctx.available_rect();
+                game_canvas.y = avail.top();
                 game_canvas.h -= game_canvas.y;
-                game_canvas.w -= 350.0;
+                game_canvas.w = avail.width();
+                game_canvas.x = avail.left();
             }
         });
         zoom = (game_canvas.w / GAME_WIDTH).floor();
         zoom = zoom.min((game_canvas.h / GAME_HEIGHT).floor());
-        game_canvas.w += (game_canvas.w - (GAME_WIDTH * zoom)) / 2.;
-        game_canvas.h += (game_canvas.h - (GAME_HEIGHT * zoom)) / 2.;
+        game_canvas.x += (game_canvas.w - (GAME_WIDTH * zoom)) / 2.;
+        game_canvas.y += (game_canvas.h - (GAME_HEIGHT * zoom)) / 2.;
         game.update(delta_time);
         push_camera_state();
         set_camera(&camera);
