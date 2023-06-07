@@ -59,6 +59,7 @@ impl Editor {
     fn debug_ui(&mut self, ui: &mut egui::Ui, game: &mut GameData) {
         ui.label(format!("FPS {}", game.fps));
         ui.label(format!("TIME {}", game.time));
+        ui.label(format!("FT {}", game.frame_time));
     }
 
     fn message_ui(&mut self, ui: &mut egui::Ui, game: &mut GameData) {

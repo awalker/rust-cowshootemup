@@ -56,6 +56,7 @@ async fn main() -> Result<()> {
     while !game.state.is_exit() {
         let mut game_canvas = Rect::new(0., 0., screen_width(), screen_height());
         let delta_time = get_frame_time();
+        game.frame_time = delta_time;
         egui_macroquad::ui(|egui_ctx| {
             if game.is_editor() {
                 editor.update_egui(egui_ctx, &mut game);
