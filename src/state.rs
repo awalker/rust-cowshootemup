@@ -2,7 +2,6 @@
 pub enum State {
     #[default]
     Init,
-    Editor,
     Step,
     StepAdvance,
     Playing,
@@ -17,9 +16,5 @@ impl State {
 
     pub fn is_playing(&self) -> bool {
         matches!(self, State::Playing | State::Step | State::StepAdvance)
-    }
-
-    pub fn is_editor(&self) -> bool {
-        matches!(self, State::Editor)
     }
 }

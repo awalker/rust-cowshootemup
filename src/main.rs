@@ -1,23 +1,18 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 /// Cow Shoot 'em up in Rust
 mod editor;
+mod prelude;
 mod state;
+use cowshmup::particle::Explosion;
+use editor::Editor;
+use macroquad::input;
+use prelude::*;
+use state::State;
 use std::{
     fs::File,
     io::{BufReader, BufWriter},
     matches,
 };
-
-use anyhow::{Context, Result};
-use cowshmup::{
-    drawable::{Drawable, Graphic},
-    particle::Explosion,
-    updateable::Updateable,
-    world::{World, GAME_HEIGHT, GAME_WIDTH},
-};
-use editor::Editor;
-use macroquad::{input, prelude::*};
-use state::State;
 
 #[derive(Default, Debug)]
 pub struct GameData {
@@ -26,6 +21,7 @@ pub struct GameData {
     time: f32,
     state: State,
     gizmos: bool,
+    show_editor: bool,
 }
 
 impl GameData {
@@ -37,7 +33,7 @@ impl GameData {
     }
 
     fn is_editor(&self) -> bool {
-        self.state.is_editor()
+        self.show_editor
     }
 
     fn update_paused(&mut self, delta_time: f32) {
@@ -46,15 +42,14 @@ impl GameData {
 
     fn handle_common_input(&mut self, _delta_time: f32) {
         self.step();
-        if input::is_key_pressed(KeyCode::E) {
-            self.state = State::Editor;
-        }
         if input::is_key_pressed(KeyCode::C) {
             self.gizmos = !self.gizmos;
         }
         if input::is_key_pressed(KeyCode::Escape) {
             self.press_escape();
-        } else if input::is_key_pressed(KeyCode::Space) {
+        }
+        if input::is_key_pressed(KeyCode::Space) {
+            info!("mq input space");
             self.press_space();
         }
     }
@@ -103,11 +98,11 @@ impl GameData {
     }
 
     fn draw_paused(&self) {
-        draw_text("Paused", 120.0, 120.0, 20.0, WHITE);
+        draw_text("Paused", 34.0, 60.0, 10.0, WHITE);
     }
 
     fn draw_step(&self) {
-        draw_text("Press s to Step", 120.0, 120.0, 20.0, WHITE);
+        draw_text("Press s to Step", 20.0, 60.0, 10.0, WHITE);
     }
 
     fn press_escape(&mut self) {
@@ -121,7 +116,9 @@ impl GameData {
 
     fn press_space(&mut self) {
         if self.state.is_playing() {
-            self.state = State::Paused
+            self.state = State::Paused;
+        } else {
+            self.state = State::Playing;
         }
     }
 }
@@ -129,7 +126,7 @@ impl GameData {
 impl Updateable for GameData {
     fn update(&mut self, delta_time: f32) {
         match self.state {
-            State::Init => self.state = State::Editor,
+            State::Init => self.state = State::Paused,
             State::Playing => self.update_game(delta_time),
             State::Paused => self.update_paused(delta_time),
             State::Step => self.handle_common_input(delta_time),
@@ -137,7 +134,6 @@ impl Updateable for GameData {
                 self.update_game(delta_time);
             }
             State::Exit => {}
-            State::Editor => {}
         }
     }
 }
@@ -156,9 +152,6 @@ impl Drawable for GameData {
                 self.draw_step();
             }
             State::Exit => self.draw_game(),
-            State::Editor => {
-                self.draw_game();
-            }
         }
     }
 
@@ -177,12 +170,11 @@ fn load_editor() -> anyhow::Result<Editor> {
 
 #[macroquad::main("OMG Cows")]
 async fn main() -> Result<()> {
-    flexi_logger::Logger::try_with_env_or_str("warn")?.start()?;
-    log::info!("Hello, World!");
+    info!("Hello, World!");
     let mut editor = match load_editor() {
         Err(err) => {
             // TODO: Result error
-            log::warn!("Unable to load editor: {:#?}", err);
+            warn!("Unable to load editor: {:#?}", err);
             Editor::default()
         }
         Ok(v) => v,
@@ -194,6 +186,7 @@ async fn main() -> Result<()> {
     let mut game = GameData {
         world,
         gizmos: true,
+        show_editor: true,
         ..GameData::default()
     };
 

@@ -1,10 +1,9 @@
+use crate::prelude::*;
 use cowshmup::{
     particle::{Explosion, ExplosionBuilder},
     CenterPt,
 };
-use egui_macroquad::egui::{self, Key, Ui};
-use macroquad::{prelude::*, rand};
-use serde::{Deserialize, Serialize};
+use macroquad::rand;
 
 use crate::State;
 
@@ -35,9 +34,6 @@ impl Editor {
         // Maybe update time
         self.seed_rand();
         self.time += delta_time;
-        if egui_ctx.input(|i| i.key_pressed(Key::Escape)) {
-            self.state = Some(State::Exit);
-        }
         egui::TopBottomPanel::top("State Menu").show(egui_ctx, |ui| {
             self.state_window_ui(ui);
         });
@@ -52,7 +48,7 @@ impl Editor {
         }
     }
 
-    fn state_window_ui(&mut self, ui: &mut Ui) {
+    fn state_window_ui(&mut self, ui: &mut egui::Ui) {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("Game", |ui| {
                 if ui.button("Play").clicked() {
