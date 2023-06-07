@@ -6,6 +6,7 @@ pub mod alive;
 pub mod drawable;
 pub mod minmax;
 pub mod particle;
+pub mod retro_camera;
 pub mod timers;
 pub mod updateable;
 pub mod utils;
