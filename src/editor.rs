@@ -13,6 +13,8 @@ pub struct Editor {
     /// Things we edit may use randomness, we need to reset that every editor frame
     seed: Option<u64>,
     pub re_add_objects_to_game: bool,
+    pub show_debug: bool,
+    pub show_properties: bool,
 
     // --- things we edit below here --
     // pub explosion_stages: Vec<ExplosionStage>,
@@ -33,9 +35,19 @@ impl Editor {
         egui::TopBottomPanel::top("State Menu").show(egui_ctx, |ui| {
             self.state_window_ui(ui, game);
         });
-        egui::SidePanel::right("Explosion").show(egui_ctx, |ui| {
-            self.explosion_builder.editor_ui(ui);
+        egui::TopBottomPanel::bottom("Messages").show(egui_ctx, |ui| {
+            self.message_ui(ui, game);
         });
+        if self.show_debug {
+            egui::SidePanel::left("Debug").show(egui_ctx, |ui| {
+                self.debug_ui(ui, game);
+            });
+        }
+        if self.show_properties {
+            egui::SidePanel::right("Properties").show(egui_ctx, |ui| {
+                self.explosion_builder.editor_ui(ui);
+            });
+        }
     }
 
     pub fn seed_rand(&self) {
@@ -44,11 +56,39 @@ impl Editor {
         }
     }
 
+    fn debug_ui(&mut self, ui: &mut egui::Ui, game: &mut GameData) {
+        ui.label(format!("FPS {}", game.fps));
+        ui.label(format!("TIME {}", game.time));
+    }
+
+    fn message_ui(&mut self, ui: &mut egui::Ui, game: &mut GameData) {
+        egui::SidePanel::right("giz_ind").show_inside(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.toggle_value(&mut self.show_properties, "Properties Panel");
+                ui.toggle_value(&mut game.show_gizmos, "Show Gizmos");
+                ui.toggle_value(&mut self.show_debug, "Debug Panel");
+            });
+        });
+        let frame = egui::Frame::default();
+        egui::CentralPanel::default()
+            .frame(frame)
+            .show_inside(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(format!("{:?}", game.state));
+                    if let State::Paused = game.state {
+                        ui.label("Press S to Step");
+                    }
+                });
+            });
+    }
+
     fn state_window_ui(&mut self, ui: &mut egui::Ui, game: &mut GameData) {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("Editor", |ui| {
                 // egui::widgets::C
+                ui.checkbox(&mut self.show_properties, "Properties Panel");
                 ui.checkbox(&mut game.show_gizmos, "Show Gizmos");
+                ui.checkbox(&mut self.show_debug, "Debug Panel");
                 ui.checkbox(&mut self.re_add_objects_to_game, "Editor Manages Objects");
                 ui.separator();
                 if ui.button("Exit").clicked() {

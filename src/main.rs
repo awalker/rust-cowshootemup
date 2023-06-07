@@ -66,7 +66,7 @@ async fn main() -> Result<()> {
                 }
                 let avail = egui_ctx.available_rect();
                 game_canvas.y = avail.top();
-                game_canvas.h -= game_canvas.y;
+                game_canvas.h = avail.height();
                 game_canvas.w = avail.width();
                 game_canvas.x = avail.left();
             }
@@ -85,7 +85,7 @@ async fn main() -> Result<()> {
             exp.draw();
             explosion = Some(exp)
         }
-        if game.show_gizmos && game.is_editor() {
+        if game.show_gizmos {
             editor.draw_gizmos_at(editor_object_center);
         }
         game.draw_gizmos();

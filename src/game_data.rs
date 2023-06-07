@@ -31,10 +31,10 @@ impl GameData {
 
     fn handle_common_input(&mut self, _delta_time: f32) {
         self.step();
-        if input::is_key_pressed(KeyCode::C) {
+        if input::is_key_pressed(KeyCode::C) || input::is_key_pressed(KeyCode::F10) {
             self.show_gizmos = !self.show_gizmos;
         }
-        if input::is_key_pressed(KeyCode::E) {
+        if input::is_key_pressed(KeyCode::E) || input::is_key_pressed(KeyCode::F11) {
             self.show_editor = !self.show_editor;
         }
         if input::is_key_pressed(KeyCode::Escape) {
@@ -64,29 +64,6 @@ impl GameData {
         clear_background(RED);
 
         self.world.draw();
-
-        // FIXME: Debug info in egui instead?
-        let font_size = 10.;
-        let y = font_size;
-        draw_text(&format!("HELLO {}", self.fps), 0.0, y, font_size, DARKGRAY);
-        let y = y + font_size;
-        draw_text(&format!("TIME {}", self.time), 0.0, y, font_size, DARKGRAY);
-        let y = y + font_size;
-        draw_text(
-            &format!("Gizmos {}", self.show_gizmos),
-            0.0,
-            y,
-            font_size,
-            DARKGRAY,
-        );
-        let y = y + font_size;
-        draw_text(
-            &format!("State {:?}", self.state),
-            0.0,
-            y,
-            font_size,
-            DARKGRAY,
-        );
     }
 
     fn draw_paused(&self) {
