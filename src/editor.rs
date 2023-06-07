@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{game_data::GameData, prelude::*};
 use cowshmup::{
     particle::{Explosion, ExplosionBuilder},
     CenterPt,
@@ -10,11 +10,6 @@ use crate::State;
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Editor {
-    #[serde(skip)]
-    pub state: Option<State>,
-    pub show_gizmos: bool,
-    #[serde(skip)]
-    pub time: f32,
     /// Things we edit may use randomness, we need to reset that every editor frame
     seed: Option<u64>,
     pub re_add_objects_to_game: bool,
@@ -26,19 +21,17 @@ pub struct Editor {
 
 impl Editor {
     pub fn init(&mut self) {
-        self.show_gizmos = true;
         self.re_add_objects_to_game = true;
         if self.seed.is_none() {
             self.seed = Some(69420);
         }
     }
 
-    pub fn update_egui(&mut self, egui_ctx: &egui::Context, delta_time: f32) {
+    pub fn update_egui(&mut self, egui_ctx: &egui::Context, game: &mut GameData) {
         // Maybe update time
         self.seed_rand();
-        self.time += delta_time;
         egui::TopBottomPanel::top("State Menu").show(egui_ctx, |ui| {
-            self.state_window_ui(ui);
+            self.state_window_ui(ui, game);
         });
         egui::SidePanel::right("Explosion").show(egui_ctx, |ui| {
             self.explosion_builder.editor_ui(ui);
@@ -51,27 +44,21 @@ impl Editor {
         }
     }
 
-    fn state_window_ui(&mut self, ui: &mut egui::Ui) {
+    fn state_window_ui(&mut self, ui: &mut egui::Ui, game: &mut GameData) {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("Editor", |ui| {
                 // egui::widgets::C
-                ui.checkbox(&mut self.show_gizmos, "Show Gizmos");
+                ui.checkbox(&mut game.show_gizmos, "Show Gizmos");
                 ui.checkbox(&mut self.re_add_objects_to_game, "Editor Manages Objects");
                 ui.separator();
                 if ui.button("Exit").clicked() {
-                    self.state = Some(State::Exit)
+                    game.state = State::Exit
                 }
             });
             ui.menu_button("Game", |ui| {
-                if ui.button("Play").clicked() {
-                    self.state = Some(State::Playing)
-                }
-                if ui.button("Step").clicked() {
-                    self.state = Some(State::Step)
-                }
-                if ui.button("Pause").clicked() {
-                    self.state = Some(State::Paused)
-                }
+                ui.radio_value(&mut game.state, State::Playing, "Play");
+                ui.radio_value(&mut game.state, State::Step, "Step");
+                ui.radio_value(&mut game.state, State::Paused, "Pause");
                 // ui.allocate_space(ui.available_size());
             });
         });

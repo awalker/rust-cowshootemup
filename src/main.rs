@@ -1,169 +1,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 /// Cow Shoot 'em up in Rust
 mod editor;
+mod game_data;
 mod prelude;
 mod state;
 use cowshmup::particle::Explosion;
 use editor::Editor;
-use macroquad::input;
 use prelude::*;
 use state::State;
 use std::{
     fs::File,
     io::{BufReader, BufWriter},
-    matches,
 };
 
-#[derive(Default, Debug)]
-pub struct GameData {
-    world: World,
-    fps: i32,
-    time: f32,
-    state: State,
-    gizmos: bool,
-    show_editor: bool,
-}
-
-impl GameData {
-    fn update_game(&mut self, delta_time: f32) {
-        self.time += delta_time;
-        self.handle_common_input(delta_time);
-        self.world.update(delta_time);
-        self.fps = get_fps();
-    }
-
-    fn is_editor(&self) -> bool {
-        self.show_editor
-    }
-
-    fn update_paused(&mut self, delta_time: f32) {
-        self.handle_common_input(delta_time);
-    }
-
-    fn handle_common_input(&mut self, _delta_time: f32) {
-        self.step();
-        if input::is_key_pressed(KeyCode::C) {
-            self.gizmos = !self.gizmos;
-        }
-        if input::is_key_pressed(KeyCode::E) {
-            self.show_editor = !self.show_editor;
-        }
-        if input::is_key_pressed(KeyCode::Escape) {
-            self.press_escape();
-        }
-        if input::is_key_pressed(KeyCode::Space) {
-            info!("mq input space");
-            self.press_space();
-        }
-    }
-
-    fn step(&mut self) {
-        if matches!(self.state, State::Step | State::StepAdvance) {
-            if input::is_key_down(KeyCode::S) {
-                self.state = State::StepAdvance;
-            }
-            if input::is_key_released(KeyCode::S) {
-                self.state = State::Step
-            }
-            if input::is_key_pressed(KeyCode::G) {
-                self.state = State::Playing
-            }
-        }
-    }
-
-    fn draw_game(&self) {
-        clear_background(RED);
-
-        self.world.draw();
-
-        // FIXME: Debug info in egui instead?
-        let font_size = 10.;
-        let y = font_size;
-        draw_text(&format!("HELLO {}", self.fps), 0.0, y, font_size, DARKGRAY);
-        let y = y + font_size;
-        draw_text(&format!("TIME {}", self.time), 0.0, y, font_size, DARKGRAY);
-        let y = y + font_size;
-        draw_text(
-            &format!("Gizmos {}", self.gizmos),
-            0.0,
-            y,
-            font_size,
-            DARKGRAY,
-        );
-        let y = y + font_size;
-        draw_text(
-            &format!("State {:?}", self.state),
-            0.0,
-            y,
-            font_size,
-            DARKGRAY,
-        );
-    }
-
-    fn draw_paused(&self) {
-        draw_text("Paused", 34.0, 60.0, 10.0, WHITE);
-    }
-
-    fn draw_step(&self) {
-        draw_text("Press s to Step", 20.0, 60.0, 10.0, WHITE);
-    }
-
-    fn press_escape(&mut self) {
-        match self.state {
-            State::Playing => self.state = State::Exit,
-            State::Paused => self.state = State::Playing,
-            State::Step => self.state = State::Exit,
-            _ => {}
-        }
-    }
-
-    fn press_space(&mut self) {
-        if self.state.is_playing() {
-            self.state = State::Paused;
-        } else {
-            self.state = State::Playing;
-        }
-    }
-}
-
-impl Updateable for GameData {
-    fn update(&mut self, delta_time: f32) {
-        match self.state {
-            State::Init => self.state = State::Paused,
-            State::Playing => self.update_game(delta_time),
-            State::Paused => self.update_paused(delta_time),
-            State::Step => self.handle_common_input(delta_time),
-            State::StepAdvance => {
-                self.update_game(delta_time);
-            }
-            State::Exit => {}
-        }
-    }
-}
-
-impl Drawable for GameData {
-    fn draw(&self) {
-        match self.state {
-            State::Init => {}
-            State::Playing => self.draw_game(),
-            State::Paused => {
-                self.draw_game();
-                self.draw_paused();
-            }
-            State::Step | State::StepAdvance => {
-                self.draw_game();
-                self.draw_step();
-            }
-            State::Exit => self.draw_game(),
-        }
-    }
-
-    fn draw_gizmos(&self) {
-        if self.gizmos {
-            self.world.draw_gizmos();
-        }
-    }
-}
+use crate::game_data::GameData;
 
 fn load_editor() -> anyhow::Result<Editor> {
     let rdr =
@@ -188,7 +38,7 @@ async fn main() -> Result<()> {
 
     let mut game = GameData {
         world,
-        gizmos: true,
+        show_gizmos: true,
         show_editor: true,
         ..GameData::default()
     };
@@ -205,19 +55,10 @@ async fn main() -> Result<()> {
 
     while !game.state.is_exit() {
         let mut game_canvas = Rect::new(0., 0., screen_width(), screen_height());
-        let mut delta_time = get_frame_time();
-        let old_time = game.time;
+        let delta_time = get_frame_time();
         egui_macroquad::ui(|egui_ctx| {
             if game.is_editor() {
-                editor.time = old_time;
-                editor.show_gizmos = game.gizmos;
-                editor.update_egui(egui_ctx, delta_time);
-                game.gizmos = editor.show_gizmos;
-                if let Some(new_state) = editor.state.take() {
-                    game.state = new_state;
-                }
-                let new_time = editor.time;
-                delta_time = new_time - old_time;
+                editor.update_egui(egui_ctx, &mut game);
                 if editor.re_add_objects_to_game {
                     if let Some(editor) = editor.build_explosion(editor_object_center) {
                         explosion = Some(editor)
@@ -236,6 +77,7 @@ async fn main() -> Result<()> {
         game_canvas.y += (game_canvas.h - (GAME_HEIGHT * zoom)) / 2.;
         game.update(delta_time);
         push_camera_state();
+        clear_background(BLACK);
         set_camera(&camera);
         game.draw();
         if let Some(mut exp) = explosion {
@@ -243,7 +85,7 @@ async fn main() -> Result<()> {
             exp.draw();
             explosion = Some(exp)
         }
-        if game.gizmos && game.is_editor() {
+        if game.show_gizmos && game.is_editor() {
             editor.draw_gizmos_at(editor_object_center);
         }
         game.draw_gizmos();
