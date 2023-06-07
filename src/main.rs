@@ -45,6 +45,9 @@ impl GameData {
         if input::is_key_pressed(KeyCode::C) {
             self.gizmos = !self.gizmos;
         }
+        if input::is_key_pressed(KeyCode::E) {
+            self.show_editor = !self.show_editor;
+        }
         if input::is_key_pressed(KeyCode::Escape) {
             self.press_escape();
         }
@@ -207,6 +210,7 @@ async fn main() -> Result<()> {
         egui_macroquad::ui(|egui_ctx| {
             if game.is_editor() {
                 editor.time = old_time;
+                editor.show_gizmos = game.gizmos;
                 editor.update_egui(egui_ctx, delta_time);
                 game.gizmos = editor.show_gizmos;
                 if let Some(new_state) = editor.state.take() {
@@ -214,8 +218,10 @@ async fn main() -> Result<()> {
                 }
                 let new_time = editor.time;
                 delta_time = new_time - old_time;
-                if let Some(editor) = editor.build_explosion(editor_object_center) {
-                    explosion = Some(editor)
+                if editor.re_add_objects_to_game {
+                    if let Some(editor) = editor.build_explosion(editor_object_center) {
+                        explosion = Some(editor)
+                    }
                 }
                 let avail = egui_ctx.available_rect();
                 game_canvas.y = avail.top();
@@ -237,7 +243,7 @@ async fn main() -> Result<()> {
             exp.draw();
             explosion = Some(exp)
         }
-        if game.is_editor() {
+        if game.gizmos && game.is_editor() {
             editor.draw_gizmos_at(editor_object_center);
         }
         game.draw_gizmos();

@@ -8,6 +8,7 @@ use macroquad::rand;
 use crate::State;
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Editor {
     #[serde(skip)]
     pub state: Option<State>,
@@ -16,6 +17,7 @@ pub struct Editor {
     pub time: f32,
     /// Things we edit may use randomness, we need to reset that every editor frame
     seed: Option<u64>,
+    pub re_add_objects_to_game: bool,
 
     // --- things we edit below here --
     // pub explosion_stages: Vec<ExplosionStage>,
@@ -25,6 +27,7 @@ pub struct Editor {
 impl Editor {
     pub fn init(&mut self) {
         self.show_gizmos = true;
+        self.re_add_objects_to_game = true;
         if self.seed.is_none() {
             self.seed = Some(69420);
         }
@@ -50,6 +53,15 @@ impl Editor {
 
     fn state_window_ui(&mut self, ui: &mut egui::Ui) {
         egui::menu::bar(ui, |ui| {
+            ui.menu_button("Editor", |ui| {
+                // egui::widgets::C
+                ui.checkbox(&mut self.show_gizmos, "Show Gizmos");
+                ui.checkbox(&mut self.re_add_objects_to_game, "Editor Manages Objects");
+                ui.separator();
+                if ui.button("Exit").clicked() {
+                    self.state = Some(State::Exit)
+                }
+            });
             ui.menu_button("Game", |ui| {
                 if ui.button("Play").clicked() {
                     self.state = Some(State::Playing)
@@ -59,13 +71,6 @@ impl Editor {
                 }
                 if ui.button("Pause").clicked() {
                     self.state = Some(State::Paused)
-                }
-                if ui.button("Toggle Gizmos").clicked() {
-                    self.show_gizmos = !self.show_gizmos;
-                }
-                ui.separator();
-                if ui.button("Exit").clicked() {
-                    self.state = Some(State::Exit)
                 }
                 // ui.allocate_space(ui.available_size());
             });
