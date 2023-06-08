@@ -1,11 +1,13 @@
+use crate::preview::{Preview, PreviewBuildableData};
 use crate::State;
-use crate::{game_data::GameData, prelude::*, preview::explosion::ExplosionPreview};
+use crate::{game_data::GameData, prelude::*};
+use cowshmup::particle::ExplosionBuilder;
 use macroquad::rand;
 
 /// Editor represents an editor for various ascpects of the game. An editor can be serialized so
 /// that it opens in the same state again. An editor can operate on, but not include, `GameData`
 /// because game data should not be serialized as part of the editor.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Editor {
     /// Things we edit may use randomness, we need to reset that every editor frame
@@ -15,15 +17,25 @@ pub struct Editor {
     pub show_properties: bool,
 
     #[serde(skip)] // for now
-    pub previews: Vec<ExplosionPreview>,
-    // --- things we edit below here --
-    // pub explosion_stages: Vec<ExplosionStage>,
+    pub previews: Vec<Box<dyn Preview>>,
+}
+
+impl std::fmt::Debug for Editor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Editor")
+            .field("seed", &self.seed)
+            .field("re_add_objects_to_game", &self.re_add_objects_to_game)
+            .field("show_debug", &self.show_debug)
+            .field("show_properties", &self.show_properties)
+            .finish()
+    }
 }
 
 impl Editor {
     pub fn init(&mut self) {
         self.re_add_objects_to_game = true;
-        self.previews.push(ExplosionPreview::default());
+        self.previews
+            .push(Box::<PreviewBuildableData<ExplosionBuilder>>::default());
         if self.seed.is_none() {
             self.seed = Some(69420);
         }

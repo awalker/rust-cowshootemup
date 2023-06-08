@@ -3,6 +3,7 @@ use std::ops::{Add, Mul};
 use serde::{Deserialize, Serialize};
 
 pub mod alive;
+pub mod buildable;
 pub mod drawable;
 pub mod minmax;
 pub mod particle;
