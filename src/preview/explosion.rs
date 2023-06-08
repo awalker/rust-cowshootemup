@@ -3,19 +3,42 @@ use cowshmup::{
     particle::{Explosion, ExplosionBuilder},
     retro_camera::RetroCamera,
 };
-use serde::{Deserialize, Serialize};
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter},
+};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ExplosionPreview {
+    builder: ExplosionBuilder,
+    filename: String,
+    zoom: f32,
+    // --- skip serde for all the rest
     #[serde(skip)]
     camera: RetroCamera,
-    builder: ExplosionBuilder,
     #[serde(skip)]
     explosion: Option<Explosion>,
     #[serde(skip)]
     time: f32,
     #[serde(skip)]
     max_time: f32,
+}
+
+impl Default for ExplosionPreview {
+    fn default() -> Self {
+        let mut obj = Self {
+            zoom: 1.5,
+            camera: Default::default(),
+            builder: Default::default(),
+            explosion: Default::default(),
+            time: Default::default(),
+            max_time: Default::default(),
+            filename: String::from("explosion.yaml"),
+        };
+        obj.camera.free_scale();
+        let _r = obj.load();
+        obj
+    }
 }
 
 /// Create an explosion from a builder in a loop once the explosion is finished.
@@ -36,6 +59,22 @@ impl ExplosionPreview {
         }
     }
 
+    pub fn load(&mut self) -> anyhow::Result<()> {
+        let rdr = BufReader::new(
+            File::open(&self.filename)
+                .with_context(|| format!("Could not open {}", self.filename))?,
+        );
+        let obj = serde_yaml::from_reader::<_, ExplosionBuilder>(rdr)
+            .with_context(|| format!("could not parse {}", self.filename))?;
+        self.builder = obj;
+        Ok(())
+    }
+
+    pub fn save(&mut self) -> anyhow::Result<()> {
+        serde_yaml::to_writer(BufWriter::new(File::create(&self.filename)?), &self.builder)?;
+        Ok(())
+    }
+
     pub fn update_ui(&mut self, delta_time: f32, ui: &mut egui::Ui) {
         self.update(delta_time);
         self.camera.reset_canvas_ui(ui);
@@ -43,6 +82,21 @@ impl ExplosionPreview {
     }
 
     pub fn draw_ui(&mut self, ui: &mut egui::Ui) {
+        egui::TopBottomPanel::top("exp file").show_inside(ui, |ui| {
+            ui.horizontal_centered(|ui| {
+                ui.text_edit_singleline(&mut self.filename);
+                if ui.button("load").clicked() {
+                    if let Err(err) = self.load() {
+                        error!("Can't load: {:?}", err);
+                    }
+                }
+                if ui.button("save").clicked() {
+                    if let Err(err) = self.save() {
+                        error!("Can't save: {:?}", err);
+                    }
+                }
+            });
+        });
         egui::TopBottomPanel::bottom("exp time").show_inside(ui, |ui| {
             ui.horizontal_centered(|ui| {
                 if self.max_time > 0. {
@@ -65,7 +119,7 @@ impl ExplosionPreview {
             let txt = self.camera.render_texture();
             let txt_id =
                 egui::TextureId::User(txt.raw_miniquad_texture_handle().gl_internal_id().into());
-            let img = egui::widgets::Image::new(txt_id, self.camera.size() * 2.);
+            let img = egui::widgets::Image::new(txt_id, self.camera.size() * self.zoom);
             ui.add(img);
         });
     }

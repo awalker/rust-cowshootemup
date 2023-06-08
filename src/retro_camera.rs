@@ -1,4 +1,4 @@
-use egui_macroquad::egui::{self};
+use egui_macroquad::egui;
 use macroquad::prelude::*;
 
 use crate::CenterPt;
@@ -9,6 +9,7 @@ pub struct RetroCamera {
     camera: Camera2D,
     zoom: f32,
     size: Vec2,
+    allow_non_int_scaling: bool,
 }
 
 impl std::fmt::Debug for RetroCamera {
@@ -35,15 +36,26 @@ impl RetroCamera {
             camera,
             zoom: 1.,
             size: Vec2::new(width, height),
+            allow_non_int_scaling: false,
         }
+    }
+
+    pub fn free_scale(&mut self) {
+        self.allow_non_int_scaling = true;
     }
 
     /// Figure out the position and zoom factor for the game when given a rect with the available
     /// space
     pub fn calculate_canvas_position_for_int_scale(&mut self) {
         let game_canvas = &mut self.game_canvas;
-        let mut zoom = (game_canvas.w / self.size.x).floor();
-        zoom = zoom.min((game_canvas.h / self.size.y).floor());
+        let mut zoom = game_canvas.w / self.size.x;
+        if !self.allow_non_int_scaling {
+            zoom = zoom.floor();
+        }
+        zoom = zoom.min(game_canvas.h / self.size.y);
+        if !self.allow_non_int_scaling {
+            zoom = zoom.floor();
+        }
         game_canvas.x += (game_canvas.w - (self.size.x * zoom)) / 2.;
         game_canvas.y += (game_canvas.h - (self.size.y * zoom)) / 2.;
         self.zoom = zoom
@@ -62,7 +74,7 @@ impl RetroCamera {
         game_canvas.x = avail.left();
     }
 
-    pub fn reset_canvas_ui(&mut self, ui: &mut egui_macroquad::egui::Ui) {}
+    pub fn reset_canvas_ui(&mut self, _ui: &mut egui_macroquad::egui::Ui) {}
 
     pub fn setup_camera(&mut self) {
         self.calculate_canvas_position_for_int_scale();
