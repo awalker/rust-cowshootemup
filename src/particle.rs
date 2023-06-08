@@ -18,7 +18,7 @@ pub trait Particle: Drawable + Updateable + IsAlive {
 
 pub trait AliveUpdatable: Updateable + IsAlive {}
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct Explosion {
     circles: Vec<CircleParticle>,
     // lines, sparks, or whatever
@@ -279,6 +279,14 @@ impl ExplosionBuilder {
             let offset = Size::new(x * dist, y * dist);
             es.draw_gizmos_at(center + offset)
         })
+    }
+
+    pub fn max_loop_time(&self) -> f32 {
+        let mut time = 0_f32;
+        for ex in self.stages.iter() {
+            time = time.max(ex.delay.max + ex.stage_time.max);
+        }
+        time
     }
 }
 

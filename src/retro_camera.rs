@@ -1,5 +1,7 @@
-use egui_macroquad::egui;
+use egui_macroquad::egui::{self};
 use macroquad::prelude::*;
+
+use crate::CenterPt;
 
 pub struct RetroCamera {
     render_target: RenderTarget,
@@ -35,6 +37,7 @@ impl RetroCamera {
             size: Vec2::new(width, height),
         }
     }
+
     /// Figure out the position and zoom factor for the game when given a rect with the available
     /// space
     pub fn calculate_canvas_position_for_int_scale(&mut self) {
@@ -46,6 +49,10 @@ impl RetroCamera {
         self.zoom = zoom
     }
 
+    pub fn size(&self) -> egui::Vec2 {
+        egui::Vec2::new(self.size.x, self.size.y)
+    }
+
     pub fn reset_canvas(&mut self, egui_ctx: &egui::Context) {
         let game_canvas = &mut self.game_canvas;
         let avail = egui_ctx.available_rect();
@@ -55,10 +62,21 @@ impl RetroCamera {
         game_canvas.x = avail.left();
     }
 
+    pub fn reset_canvas_ui(&mut self, ui: &mut egui_macroquad::egui::Ui) {}
+
     pub fn setup_camera(&mut self) {
         self.calculate_canvas_position_for_int_scale();
         push_camera_state();
         set_camera(&self.camera);
+    }
+
+    pub fn render_texture(&self) -> macroquad::texture::Texture2D {
+        pop_camera_state();
+        self.render_target.texture
+    }
+
+    pub fn center(&self) -> CenterPt {
+        CenterPt::new(self.size.x / 2., self.size.y / 2.)
     }
 
     pub fn render(&self) {

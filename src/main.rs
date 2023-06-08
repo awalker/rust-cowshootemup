@@ -5,7 +5,7 @@ mod game_data;
 mod prelude;
 mod preview;
 mod state;
-use cowshmup::{particle::Explosion, retro_camera::RetroCamera};
+use cowshmup::retro_camera::RetroCamera;
 use editor::Editor;
 use prelude::*;
 use state::State;
@@ -47,10 +47,6 @@ async fn main() -> Result<()> {
         ..GameData::default()
     };
 
-    // TEMP EDITOR STUFF
-    let mut explosion: Option<Explosion> = None;
-    let editor_object_center = cowshmup::CenterPt::new(GAME_WIDTH / 2., GAME_HEIGHT / 2.);
-
     // Retro Camera Setup
     let mut retrocam = RetroCamera::default();
 
@@ -63,12 +59,6 @@ async fn main() -> Result<()> {
         egui_macroquad::ui(|egui_ctx| {
             if game.is_editor() {
                 editor.update_egui(egui_ctx, &mut game);
-                // TODO: TEMP: WANT TO REWRITE...
-                if editor.re_add_objects_to_game {
-                    if let Some(editor) = editor.build_explosion(editor_object_center) {
-                        explosion = Some(editor)
-                    }
-                }
             }
             // NOTE: Game Canvas is being reset by egui, if we want to disable egui for use
             // release, with will need to reset the canvas to 0,0,screen width, height
@@ -84,15 +74,6 @@ async fn main() -> Result<()> {
 
         // DRAW (to texture/Retro Camera)
         game.draw();
-        // TEMP EDITOR PREVIEW...
-        if let Some(mut exp) = explosion {
-            exp.update(game.frame_time);
-            exp.draw();
-            explosion = Some(exp)
-        }
-        if game.show_gizmos {
-            editor.draw_gizmos_at(editor_object_center);
-        }
         game.draw_gizmos();
 
         // DRAW at native rez (stretch Retro Camera, then render egui)

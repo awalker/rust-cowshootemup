@@ -1,13 +1,11 @@
-use crate::{game_data::GameData, prelude::*};
-use cowshmup::{
-    particle::{Explosion, ExplosionBuilder},
-    CenterPt,
-};
+use crate::State;
+use crate::{game_data::GameData, prelude::*, preview::explosion::ExplosionPreview};
 use macroquad::rand;
 
-use crate::State;
-
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+/// Editor represents an editor for various ascpects of the game. An editor can be serialized so
+/// that it opens in the same state again. An editor can operate on, but not include, `GameData`
+/// because game data should not be serialized as part of the editor.
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Editor {
     /// Things we edit may use randomness, we need to reset that every editor frame
@@ -16,14 +14,16 @@ pub struct Editor {
     pub show_debug: bool,
     pub show_properties: bool,
 
+    #[serde(skip)] // for now
+    pub previews: Vec<ExplosionPreview>,
     // --- things we edit below here --
     // pub explosion_stages: Vec<ExplosionStage>,
-    pub explosion_builder: ExplosionBuilder,
 }
 
 impl Editor {
     pub fn init(&mut self) {
         self.re_add_objects_to_game = true;
+        self.previews.push(ExplosionPreview::default());
         if self.seed.is_none() {
             self.seed = Some(69420);
         }
@@ -44,10 +44,11 @@ impl Editor {
             });
         }
         if self.show_properties {
-            egui::SidePanel::right("Properties").show(egui_ctx, |ui| {
-                self.explosion_builder.editor_ui(ui);
-            });
+            // egui::SidePanel::right("Properties").show(egui_ctx, |ui| {
+            // self.explosion_builder.editor_ui(ui);
+            // });
         }
+        self.previews(egui_ctx, game);
     }
 
     pub fn seed_rand(&self) {
@@ -105,11 +106,16 @@ impl Editor {
         });
     }
 
-    pub fn build_explosion(&mut self, center: CenterPt) -> Option<Explosion> {
-        self.explosion_builder.clone().build(center)
-    }
-
-    pub fn draw_gizmos_at(&self, center: CenterPt) {
-        self.explosion_builder.draw_gizmos_at(center);
+    fn previews(&mut self, ctx: &egui::Context, game: &GameData) {
+        self.previews.iter_mut().for_each(|preview| {
+            egui::Window::new("Explosion Preview").show(ctx, |ui| {
+                preview.update_ui(game.frame_time, ui);
+                preview.draw();
+                if game.show_gizmos {
+                    preview.draw_gizmos();
+                }
+                preview.draw_ui(ui);
+            });
+        });
     }
 }
