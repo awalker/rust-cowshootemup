@@ -2,13 +2,44 @@ use egui_macroquad::egui::{
     self,
     color_picker::{self, Alpha},
     epaint::{Hsva, HsvaGamma},
-    Rgba, Ui,
+    Color32, Rgba, Ui,
 };
 use macroquad::prelude::Color;
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct GameColor(Color);
+
+pub const WHITE: GameColor = GameColor(macroquad::color::WHITE);
+pub const BLACK: GameColor = GameColor(macroquad::color::BLACK);
+pub const LIGHTGRAY: GameColor = GameColor(macroquad::color::LIGHTGRAY);
+pub const GRAY: GameColor = GameColor(macroquad::color::GRAY);
+pub const DARKGRAY: GameColor = GameColor(macroquad::color::DARKGRAY);
+pub const BLUE: GameColor = GameColor(macroquad::color::BLUE);
+pub const RED: GameColor = GameColor(macroquad::color::RED);
+pub const GREEN: GameColor = GameColor(macroquad::color::GREEN);
+pub const PURPLE: GameColor = GameColor(macroquad::color::PURPLE);
+pub const GOLD: GameColor = GameColor(macroquad::color::GOLD);
+pub const LIME: GameColor = GameColor(macroquad::color::LIME);
+pub const PINK: GameColor = GameColor(macroquad::color::PINK);
+pub const BEIGE: GameColor = GameColor(macroquad::color::BEIGE);
+pub const BROWN: GameColor = GameColor(macroquad::color::BROWN);
+pub const MAROON: GameColor = GameColor(macroquad::color::MAROON);
+pub const ORANGE: GameColor = GameColor(macroquad::color::ORANGE);
+pub const YELLOW: GameColor = GameColor(macroquad::color::YELLOW);
+pub const VIOLET: GameColor = GameColor(macroquad::color::VIOLET);
+pub const MAGENTA: GameColor = GameColor(macroquad::color::MAGENTA);
+pub const SKYBLUE: GameColor = GameColor(macroquad::color::SKYBLUE);
+pub const DARKBLUE: GameColor = GameColor(macroquad::color::DARKBLUE);
+pub const DARKBROWN: GameColor = GameColor(macroquad::color::DARKBROWN);
+pub const DARKGREEN: GameColor = GameColor(macroquad::color::DARKGREEN);
+pub const DARKPURPLE: GameColor = GameColor(macroquad::color::DARKPURPLE);
+
+pub const PALETTE: [GameColor; 24] = [
+    BLACK, WHITE, LIGHTGRAY, GRAY, DARKGRAY, SKYBLUE, BLUE, DARKBLUE, PINK, RED, MAROON, MAGENTA,
+    LIME, GREEN, DARKGREEN, PURPLE, VIOLET, DARKPURPLE, BEIGE, BROWN, DARKBROWN, GOLD, YELLOW,
+    ORANGE,
+];
 
 impl GameColor {
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
@@ -67,7 +98,7 @@ impl From<egui::Rgba> for GameColor {
 impl From<GameColor> for egui::Rgba {
     fn from(value: GameColor) -> Self {
         let c = value.0;
-        egui::Rgba::from_rgba_premultiplied(c.r, c.g, c.b, c.a)
+        egui::Rgba::from_rgba_unmultiplied(c.r, c.g, c.b, c.a)
     }
 }
 
@@ -82,7 +113,23 @@ impl From<HsvaGamma> for GameColor {
 impl From<GameColor> for HsvaGamma {
     fn from(value: GameColor) -> Self {
         let c = value.0;
-        let rgba = egui::Rgba::from_rgba_premultiplied(c.r, c.g, c.b, c.a);
+        let rgba = egui::Rgba::from_rgba_unmultiplied(c.r, c.g, c.b, c.a);
+        rgba.into()
+    }
+}
+
+impl From<Color32> for GameColor {
+    fn from(value: Color32) -> Self {
+        let value: egui::Rgba = value.into();
+        let color = Color::new(value.r(), value.g(), value.b(), value.a());
+        Self(color)
+    }
+}
+
+impl From<GameColor> for Color32 {
+    fn from(value: GameColor) -> Self {
+        let c = value.0;
+        let rgba = egui::Rgba::from_rgba_unmultiplied(c.r, c.g, c.b, c.a);
         rgba.into()
     }
 }
