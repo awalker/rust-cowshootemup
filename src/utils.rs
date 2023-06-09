@@ -2,7 +2,7 @@ use egui_macroquad::egui::{
     self,
     color_picker::{self, Alpha},
     epaint::{Hsva, HsvaGamma},
-    Rgba, Ui,
+    Color32, Rgba, Ui,
 };
 use macroquad::prelude::Color;
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
@@ -80,6 +80,22 @@ impl From<HsvaGamma> for GameColor {
 }
 
 impl From<GameColor> for HsvaGamma {
+    fn from(value: GameColor) -> Self {
+        let c = value.0;
+        let rgba = egui::Rgba::from_rgba_premultiplied(c.r, c.g, c.b, c.a);
+        rgba.into()
+    }
+}
+
+impl From<Color32> for GameColor {
+    fn from(value: Color32) -> Self {
+        let value: egui::Rgba = value.into();
+        let color = Color::new(value.r(), value.g(), value.b(), value.a());
+        Self(color)
+    }
+}
+
+impl From<GameColor> for Color32 {
     fn from(value: GameColor) -> Self {
         let c = value.0;
         let rgba = egui::Rgba::from_rgba_premultiplied(c.r, c.g, c.b, c.a);
