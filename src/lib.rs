@@ -11,6 +11,7 @@ pub mod retro_camera;
 pub mod timers;
 pub mod updateable;
 pub mod utils;
+pub mod widgets;
 pub mod world;
 
 pub type Rc<T> = std::rc::Rc<T>;

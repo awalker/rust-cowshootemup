@@ -1,7 +1,8 @@
 mod circle;
 use crate::{
     alive::IsAlive, buildable::Buildable, drawable::Drawable, minmax::MinMax,
-    updateable::Updateable, utils::GameColor, CenterPt, Size, Velocity,
+    updateable::Updateable, utils::GameColor, widgets::color_picker::color_edit_palette_button,
+    CenterPt, Size, Velocity,
 };
 pub use circle::CircleParticle;
 use egui_macroquad::egui::{self, Grid, Ui};
@@ -139,6 +140,9 @@ impl ExplosionStage {
     }
 
     pub fn editor_ui(&mut self, ui: &mut Ui, id: usize) {
+        use crate::utils::*;
+        let palette = PALETTE;
+
         ui.horizontal(|ui| {
             ui.heading(format!("Explosion circle stage #{}", id + 1));
             if ui.small_button("").clicked() {
@@ -171,11 +175,7 @@ impl ExplosionStage {
             ui.end_row();
 
             ui.label("Color");
-            self.color = self.color.editor_ui(ui);
-            /* ui.horizontal(|ui| {
-                ui.label("Color");
-                ui.label("cell");
-            }); */
+            color_edit_palette_button(ui, &mut self.color, &palette);
             ui.end_row();
         });
     }
