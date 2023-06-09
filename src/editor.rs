@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::preview::{Preview, PreviewBuildableData};
 use crate::State;
 use crate::{game_data::GameData, prelude::*};
@@ -16,8 +18,32 @@ pub struct Editor {
     pub show_debug: bool,
     pub show_properties: bool,
 
+    pub previews: HashMap<EditorPreview, PreviewMeta>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+pub struct PreviewMeta {
+    opened: bool,
     #[serde(skip)] // for now
-    pub previews: Vec<Box<dyn Preview>>,
+    preview: Option<Box<dyn Preview>>,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord, Clone, Copy)]
+pub enum EditorPreview {
+    Explosion,
+}
+
+impl EditorPreview {
+    fn create_preview(&self) -> Box<dyn Preview> {
+        match self {
+            EditorPreview::Explosion => Box::<PreviewBuildableData<ExplosionBuilder>>::default(),
+        }
+    }
+    fn get_name(&self) -> &str {
+        match self {
+            EditorPreview::Explosion => "Explosion Preview",
+        }
+    }
 }
 
 impl std::fmt::Debug for Editor {
@@ -35,7 +61,8 @@ impl Editor {
     pub fn init(&mut self) {
         self.re_add_objects_to_game = true;
         self.previews
-            .push(Box::<PreviewBuildableData<ExplosionBuilder>>::default());
+            .entry(EditorPreview::Explosion)
+            .or_insert_with(PreviewMeta::default);
         if self.seed.is_none() {
             self.seed = Some(69420);
         }
@@ -100,6 +127,14 @@ impl Editor {
         egui::menu::bar(ui, |ui| {
             ui.menu_button("Editor", |ui| {
                 // egui::widgets::C
+                let mut keys = self.previews.keys().copied().collect::<Vec<_>>();
+                keys.sort();
+                keys.iter().for_each(|k| {
+                    let meta = self.previews.get_mut(k).unwrap();
+                    ui.checkbox(&mut meta.opened, k.get_name());
+                });
+
+                ui.separator();
                 ui.checkbox(&mut self.show_properties, "Properties Panel");
                 ui.checkbox(&mut game.show_gizmos, "Show Gizmos");
                 ui.checkbox(&mut self.show_debug, "Debug Panel");
@@ -119,15 +154,27 @@ impl Editor {
     }
 
     fn previews(&mut self, ctx: &egui::Context, game: &GameData) {
-        self.previews.iter_mut().for_each(|preview| {
-            egui::Window::new("Explosion Preview").show(ctx, |ui| {
-                preview.update_ui(game.frame_time, ui);
-                preview.draw();
-                if game.show_gizmos {
-                    preview.draw_gizmos();
+        self.previews.iter_mut().for_each(|(key, meta)| {
+            if meta.opened {
+                let preview = &mut meta.preview;
+                if preview.is_none() {
+                    *preview = Some(key.create_preview())
                 }
-                preview.draw_ui(ui);
-            });
+                if let Some(preview) = preview {
+                    egui::Window::new(key.get_name())
+                        .min_width(500.)
+                        .resizable(true)
+                        .open(&mut meta.opened)
+                        .show(ctx, |ui| {
+                            preview.update_ui(game.frame_time, ui);
+                            preview.draw();
+                            if game.show_gizmos {
+                                preview.draw_gizmos();
+                            }
+                            preview.draw_ui(ui);
+                        });
+                }
+            }
         });
     }
 }
