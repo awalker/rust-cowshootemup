@@ -1,7 +1,7 @@
 mod circle;
 use crate::{
-    alive::IsAlive, drawable::Drawable, minmax::MinMax, updateable::Updateable, utils::GameColor,
-    CenterPt, Size, Velocity,
+    alive::IsAlive, buildable::Buildable, drawable::Drawable, minmax::MinMax,
+    updateable::Updateable, utils::GameColor, CenterPt, Size, Velocity,
 };
 pub use circle::CircleParticle;
 use egui_macroquad::egui::{self, Grid, Ui};
@@ -18,7 +18,7 @@ pub trait Particle: Drawable + Updateable + IsAlive {
 
 pub trait AliveUpdatable: Updateable + IsAlive {}
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct Explosion {
     circles: Vec<CircleParticle>,
     // lines, sparks, or whatever
@@ -206,23 +206,10 @@ impl ExplosionStage {
     }
 }
 
-impl ExplosionBuilder {
-    pub fn with_stages(mut self, stages: Vec<ExplosionStage>) -> Self {
-        self.stages = stages;
-        self
-    }
+impl Buildable for ExplosionBuilder {
+    type Byproduct = Explosion;
 
-    /// Add a stage of the explosion
-    pub fn with_circle_stage(mut self, stage: ExplosionStage) -> Self {
-        assert!(
-            stage.stage_time.max != 0.,
-            "Max Stage time can not be zero!"
-        );
-        self.stages.push(stage);
-        self
-    }
-
-    pub fn build(self, center: CenterPt) -> Option<Explosion> {
+    fn build(self, center: CenterPt) -> Option<Self::Byproduct> {
         if self.stages.is_empty() {
             None
         } else {
@@ -238,7 +225,7 @@ impl ExplosionBuilder {
         }
     }
 
-    pub fn editor_ui(&mut self, ui: &mut Ui) {
+    fn editor_ui(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.heading("Explosion");
             if ui.small_button("Add Stage").clicked() {
@@ -271,7 +258,7 @@ impl ExplosionBuilder {
         });
     }
 
-    pub fn draw_gizmos_at(&self, center: CenterPt) {
+    fn draw_gizmos_at(&self, center: CenterPt) {
         self.stages.iter().for_each(|es| {
             let dist = es.dist.avg();
             let angle = es.angle.avg();
@@ -279,6 +266,39 @@ impl ExplosionBuilder {
             let offset = Size::new(x * dist, y * dist);
             es.draw_gizmos_at(center + offset)
         })
+    }
+
+    fn max_loop_time(&self) -> f32 {
+        let mut time = 0_f32;
+        for ex in self.stages.iter() {
+            time = time.max(ex.delay.max + ex.stage_time.max);
+        }
+        time
+    }
+
+    fn get_base_id() -> &'static str {
+        "exp"
+    }
+
+    fn get_default_file_name() -> &'static str {
+        "explosion.yaml"
+    }
+}
+
+impl ExplosionBuilder {
+    pub fn with_stages(mut self, stages: Vec<ExplosionStage>) -> Self {
+        self.stages = stages;
+        self
+    }
+
+    /// Add a stage of the explosion
+    pub fn with_circle_stage(mut self, stage: ExplosionStage) -> Self {
+        assert!(
+            stage.stage_time.max != 0.,
+            "Max Stage time can not be zero!"
+        );
+        self.stages.push(stage);
+        self
     }
 }
 

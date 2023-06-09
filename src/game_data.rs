@@ -7,6 +7,7 @@ use crate::{prelude::*, state::State};
 pub struct GameData {
     pub world: World,
     pub fps: i32,
+    pub frame_time: f32,
     pub time: f32,
     pub state: State,
     pub show_gizmos: bool,
